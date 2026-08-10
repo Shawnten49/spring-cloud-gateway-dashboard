@@ -2,12 +2,15 @@ package com.gatewaydashboard.route;
 
 import com.gatewaydashboard.audit.AuditService;
 import com.gatewaydashboard.common.BusinessException;
+import com.gatewaydashboard.config.ExternalGatewayRefreshService;
 import com.gatewaydashboard.route.RouteDto.RouteRequest;
 import com.gatewaydashboard.route.RouteDto.RouteResponse;
 import com.gatewaydashboard.route.RouteDto.ValidationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -21,6 +24,7 @@ public class RouteService {
     private final RouteAssembler assembler;
     private final RouteRefreshService refreshService;
     private final AuditService auditService;
+    private final ExternalGatewayRefreshService externalGatewayRefreshService;
 
     @Transactional(readOnly = true)
     public List<RouteResponse> list(String keyword) {
@@ -45,6 +49,7 @@ public class RouteService {
         entity = repository.save(entity);
         refreshService.refresh();
         auditService.record(actor, "CREATE", entity.getRouteId(), null, assembler.toJson(entity), ip);
+        notifyExternalGateways();
         return assembler.toResponse(entity);
     }
 
@@ -65,6 +70,7 @@ public class RouteService {
         }
         refreshService.refresh();
         auditService.record(actor, "UPDATE", saved.getRouteId(), before, assembler.toJson(saved), ip);
+        notifyExternalGateways();
         return assembler.toResponse(saved);
     }
 
@@ -74,6 +80,7 @@ public class RouteService {
         repository.delete(existing);
         refreshService.refresh();
         auditService.record(actor, "DELETE", existing.getRouteId(), assembler.toJson(existing), null, ip);
+        notifyExternalGateways();
     }
 
     @Transactional
@@ -90,7 +97,21 @@ public class RouteService {
         RouteConfig saved = repository.saveAndFlush(existing);
         refreshService.refresh();
         auditService.record(actor, enabled ? "ENABLE" : "DISABLE", saved.getRouteId(), before, assembler.toJson(saved), ip);
+        notifyExternalGateways();
         return assembler.toResponse(saved);
+    }
+
+    private void notifyExternalGateways() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    externalGatewayRefreshService.refreshAll();
+                }
+            });
+        } else {
+            externalGatewayRefreshService.refreshAll();
+        }
     }
 
     public ValidationResponse validateOnly(RouteRequest request) {

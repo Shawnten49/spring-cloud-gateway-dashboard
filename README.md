@@ -17,6 +17,25 @@ Spring Cloud Gateway 管理后台：登录后可查看、修改、保存网关�
 
 > 详细使用说明（动态路由配置原理、页面操作、Predicate/Filter 示例、API 脚本化）见 [docs/使用手册.md](docs/使用手册.md)。
 
+### 对接外部网关（管理独立部署的 Gateway）
+
+仪表盘默认管理**自己进程内嵌的网关**。如果要管理独立部署的网关（如 `http://localhost:8088`），需要：
+
+1. 在外部网关工程中集成"数据库路由源 + 刷新接口"（参考 `sca-practice/gateway-service` 的改动）：
+   - 加 `spring-boot-starter-jdbc` + `mysql-connector-j` 依赖，数据源指向同一个 `gateway_dashboard` 库
+   - 把 `DbRouteDefinitionLocator` 等 6 个类放入网关工程（读取 `route_config` 表、轮询版本号、内部刷新/查看接口）
+   - 从 YAML 中移除业务路由，改由数据库管理
+2. 在仪表盘 `application.yml` 配置外部网关，保存路由后自动推送刷新：
+
+```yaml
+gateway-dashboard:
+  external-gateways:
+    - base-url: http://localhost:8088
+      token: gd-internal-token-dev   # 与网关工程的 internal-token 一致
+```
+
+推送失败不影响保存结果：网关侧另有 5 秒版本轮询兜底，路由最多延迟一个轮询周期生效。
+
 ## 技术栈
 
 - 后端：Java 21、Spring Boot 3.5.x、Spring Cloud 2025.0.x（Northfields）、Spring Cloud Gateway 4.3.x（WebFlux）、Spring Security + JWT、Spring Data JPA、Flyway、MySQL 8（测试用 H2 MySQL 兼容模式）

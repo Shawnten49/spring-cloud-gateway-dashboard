@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: gateway-dashboard
+  profiles:
+    default: dev
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: true
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+gateway-dashboard:
+  jwt:
+    # 生产环境请通过 JWT_SECRET 环境变量覆盖
+    secret: ${JWT_SECRET:gateway-dashboard-dev-secret-change-me-0123456789}
+    expire-hours: 12
+
+logging:
+  level:
+    com.gatewaydashboard: INFO

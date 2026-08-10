@@ -1,0 +1,8 @@
+# 开发临时用：本机没有 MySQL 时可用 H2 文件库跑通全流程。
+# 注意：生产/交付环境一律使用 MySQL（dev profile）。
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/gateway-dashboard;MODE=MySQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver

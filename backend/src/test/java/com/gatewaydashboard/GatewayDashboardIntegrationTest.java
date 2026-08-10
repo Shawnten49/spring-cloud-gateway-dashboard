@@ -39,6 +39,16 @@ class GatewayDashboardIntegrationTest {
     }
 
     @Test
+    void wrongMethodReturnsJson405() {
+        webTestClient.get().uri("/api/auth/login")
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.METHOD_NOT_ALLOWED)
+                .expectBody()
+                .jsonPath("$.code").isEqualTo(405)
+                .jsonPath("$.message").isNotEmpty();
+    }
+
+    @Test
     void fullRouteLifecycle() {
         String adminToken = login("admin", "admin123");
         String viewerToken = login("viewer", "viewer123");

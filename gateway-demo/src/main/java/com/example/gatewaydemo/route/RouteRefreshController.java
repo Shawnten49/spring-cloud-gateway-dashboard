@@ -26,13 +26,16 @@ public class RouteRefreshController {
     private final RouteRefreshPublisher refreshPublisher;
     private final RouteSyncProperties properties;
     private final RouteDefinitionLocator routeDefinitionLocator;
+    private final RouteSyncScheduler routeSyncScheduler;
 
     public RouteRefreshController(RouteRefreshPublisher refreshPublisher,
                                   RouteSyncProperties properties,
-                                  @Qualifier("routeDefinitionLocator") RouteDefinitionLocator routeDefinitionLocator) {
+                                  @Qualifier("routeDefinitionLocator") RouteDefinitionLocator routeDefinitionLocator,
+                                  RouteSyncScheduler routeSyncScheduler) {
         this.refreshPublisher = refreshPublisher;
         this.properties = properties;
         this.routeDefinitionLocator = routeDefinitionLocator;
+        this.routeSyncScheduler = routeSyncScheduler;
     }
 
     @PostMapping("/refresh")
@@ -40,6 +43,7 @@ public class RouteRefreshController {
             @RequestHeader(value = "X-Internal-Token", required = false) String token) {
         requireToken(token);
         refreshPublisher.refresh();
+        routeSyncScheduler.markRefreshed();
         return Mono.just(Map.of("code", 200, "message", "ok"));
     }
 

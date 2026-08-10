@@ -21,6 +21,7 @@ public class RouteSyncScheduler {
     private final RouteSyncProperties properties;
 
     private volatile String lastChecksum = "";
+    private volatile String lastRefreshedChecksum = "";
 
     public RouteSyncScheduler(JdbcTemplate jdbcTemplate,
                               RouteRefreshPublisher refreshPublisher,
@@ -33,6 +34,7 @@ public class RouteSyncScheduler {
     @PostConstruct
     public void init() {
         lastChecksum = currentChecksum();
+        lastRefreshedChecksum = lastChecksum;
     }
 
     @Scheduled(fixedDelayString = "${gateway-dashboard.route-sync.poll-interval-ms:5000}")
@@ -40,8 +42,24 @@ public class RouteSyncScheduler {
         String current = currentChecksum();
         if (current != null && !current.equals(lastChecksum)) {
             lastChecksum = current;
-            refreshPublisher.refresh();
-            log.info("检测到路由配置变化（{}），已触发刷新", current);
+            // 该变更可能已由主动推送（/internal/routes/refresh）处理，避免重复刷新
+            if (!current.equals(lastRefreshedChecksum)) {
+                lastRefreshedChecksum = current;
+                refreshPublisher.refresh();
+                log.info("检测到路由配置变化（{}），已触发刷新", current);
+            }
+        }
+    }
+
+    /**
+     * 主动推送刷新后调用：把当前数据库校验和标记为"已刷新"，
+     * 使轮询不会为同一次变更重复触发；后续若校验和再次变化，轮询仍会兜底。
+     */
+    public void markRefreshed() {
+        String current = currentChecksum();
+        if (current != null) {
+            lastChecksum = current;
+            lastRefreshedChecksum = current;
         }
     }
 

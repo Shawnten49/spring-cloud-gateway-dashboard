@@ -15,6 +15,8 @@ Spring Cloud Gateway 管理后台：登录后可查看、修改、保存网关�
 
 管理后台与网关运行在同一个 Spring Boot 进程内（单实例 MVP），路由配置存储在 MySQL，通过自定义 `RouteDefinitionLocator` 接入 Spring Cloud Gateway；每次写操作落库后发布刷新事件热生效。设计决策见 [docs/adr](docs/adr/)，领域词汇表见 [CONTEXT.md](CONTEXT.md)。
 
+> 详细使用说明（动态路由配置原理、页面操作、Predicate/Filter 示例、API 脚本化）见 [docs/使用手册.md](docs/使用手册.md)。
+
 ## 技术栈
 
 - 后端：Java 21、Spring Boot 3.5.x、Spring Cloud 2025.0.x（Northfields）、Spring Cloud Gateway 4.3.x（WebFlux）、Spring Security + JWT、Spring Data JPA、Flyway、MySQL 8（测试用 H2 MySQL 兼容模式）

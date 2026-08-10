@@ -31,7 +31,11 @@ class GatewayDashboardIntegrationTest {
     void protectedEndpointRejectsAnonymousRequest() {
         webTestClient.get().uri("/api/routes")
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isUnauthorized()
+                .expectHeader().doesNotExist("WWW-Authenticate")
+                .expectBody()
+                .jsonPath("$.code").isEqualTo(401)
+                .jsonPath("$.message").isNotEmpty();
     }
 
     @Test
@@ -127,7 +131,10 @@ class GatewayDashboardIntegrationTest {
                          "predicates":[{"name":"Path","args":{"patterns":"/x/**"}}],"filters":[],"metadata":{}}
                         """)
                 .exchange()
-                .expectStatus().isForbidden();
+                .expectStatus().isForbidden()
+                .expectBody()
+                .jsonPath("$.code").isEqualTo(403)
+                .jsonPath("$.message").isNotEmpty();
 
         // 审计日志包含 CREATE 记录
         webTestClient.get().uri("/api/audit-logs?page=1&size=100")

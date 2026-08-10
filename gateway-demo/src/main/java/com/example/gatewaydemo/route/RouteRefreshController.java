@@ -1,5 +1,7 @@
 package com.example.gatewaydemo.route;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -22,6 +25,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/internal/routes")
 public class RouteRefreshController {
+
+    private static final Logger log = LoggerFactory.getLogger(RouteRefreshController.class);
 
     private final RouteRefreshPublisher refreshPublisher;
     private final RouteSyncProperties properties;
@@ -40,8 +45,10 @@ public class RouteRefreshController {
 
     @PostMapping("/refresh")
     public Mono<Map<String, Object>> refresh(
-            @RequestHeader(value = "X-Internal-Token", required = false) String token) {
+            @RequestHeader(value = "X-Internal-Token", required = false) String token,
+            ServerWebExchange exchange) {
         requireToken(token);
+        log.info("收到外部通知刷新请求（来源 {}），触发路由刷新", clientIp(exchange));
         refreshPublisher.refresh();
         routeSyncScheduler.markRefreshed();
         return Mono.just(Map.of("code", 200, "message", "ok"));
@@ -71,5 +78,15 @@ public class RouteRefreshController {
                 "routeId", definition.getId(),
                 "uri", definition.getUri() == null ? "" : definition.getUri().toString(),
                 "order", definition.getOrder());
+    }
+
+    private static String clientIp(ServerWebExchange exchange) {
+        String forwarded = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return exchange.getRequest().getRemoteAddress() != null
+                ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
+                : "unknown";
     }
 }

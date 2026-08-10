@@ -21,7 +21,7 @@ Spring Cloud Gateway 管理后台：登录后可查看、修改、保存网关�
 
 仪表盘默认管理**自己进程内嵌的网关**。如果要管理独立部署的网关（如 `http://localhost:8088`），需要：
 
-1. 在外部网关工程中集成"数据库路由源 + 刷新接口"（参考 `sca-practice/gateway-service` 的改动）：
+1. 在外部网关工程中集成"数据库路由源 + 刷新接口"（本仓库自带已集成的演示工程 [gateway-demo](gateway-demo/)）：
    - 加 `spring-boot-starter-jdbc` + `mysql-connector-j` 依赖，数据源指向同一个 `gateway_dashboard` 库
    - 把 `DbRouteDefinitionLocator` 等 6 个类放入网关工程（读取 `route_config` 表、轮询版本号、内部刷新/查看接口）
    - 从 YAML 中移除业务路由，改由数据库管理
@@ -78,6 +78,15 @@ mvn spring-boot:run            # 默认 dev profile（MySQL）
 cd frontend
 npm install
 npm run dev                    # http://localhost:5173，/api 自动代理到 8080
+```
+
+### 4.（可选）启动演示网关 gateway-demo
+
+仓库自带一个独立部署形态的演示网关（数据库路由源 + 刷新接口，端口 8088），用于演示仪表盘管理**外部网关**：
+
+```bash
+cd gateway-demo
+mvn spring-boot:run            # http://localhost:8088，需 Nacos（127.0.0.1:8848）
 ```
 
 ### 预置账号
@@ -138,6 +147,7 @@ docker compose up -d --build    # 前端 http://localhost:8088，后端 http://l
 ```text
 .
 ├── backend/          # Spring Boot 后端（Gateway + 管理 API）
+├── gateway-demo/     # 独立部署形态的演示网关（数据库路由源，端口 8088）
 ├── frontend/         # Vue 3 前端
 ├── docker/           # Docker 交付物（未验证）
 ├── docs/adr/         # 架构决策记录

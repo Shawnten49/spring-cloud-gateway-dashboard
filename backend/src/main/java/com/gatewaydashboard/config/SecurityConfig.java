@@ -1,10 +1,10 @@
 package com.gatewaydashboard.config;
 
 import com.gatewaydashboard.auth.JwtAuthenticationFilter;
+import com.gatewaydashboard.permission.DynamicPermissionAuthorizationManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -23,6 +23,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final DynamicPermissionAuthorizationManager dynamicPermissionAuthorizationManager;
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
@@ -34,14 +35,10 @@ public class SecurityConfig {
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .logout(ServerHttpSecurity.LogoutSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
+                        // 引导规则：保证登录与健康检查永远可用
                         .pathMatchers("/api/auth/login", "/actuator/health").permitAll()
-                        .pathMatchers(HttpMethod.GET, "/api/**").authenticated()
-                        .pathMatchers(HttpMethod.POST, "/api/routes/validate").authenticated()
-                        .pathMatchers(HttpMethod.PUT, "/api/auth/password").authenticated()
-                        .pathMatchers(HttpMethod.POST, "/api/routes/**").hasRole("ADMIN")
-                        .pathMatchers(HttpMethod.PUT, "/api/routes/**").hasRole("ADMIN")
-                        .pathMatchers(HttpMethod.DELETE, "/api/routes/**").hasRole("ADMIN")
-                        .anyExchange().authenticated())
+                        // 其余接口的权限规则全部来自数据库（permission_rule 表），可动态配置
+                        .anyExchange().access(dynamicPermissionAuthorizationManager))
                 .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .build();
     }

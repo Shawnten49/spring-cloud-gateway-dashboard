@@ -8,7 +8,8 @@ const router = createRouter({
     { path: '/', redirect: '/routes' },
     { path: '/routes', name: 'routes', component: () => import('@/views/RouteListView.vue'), meta: { title: '路由管理' } },
     { path: '/gateway', name: 'gateway', component: () => import('@/views/GatewayStatusView.vue'), meta: { title: '网关状态' } },
-    { path: '/audit', name: 'audit', component: () => import('@/views/AuditLogView.vue'), meta: { title: '操作日志' } }
+    { path: '/audit', name: 'audit', component: () => import('@/views/AuditLogView.vue'), meta: { title: '操作日志' } },
+    { path: '/permissions', name: 'permissions', component: () => import('@/views/PermissionRuleView.vue'), meta: { title: '权限配置' } }
   ]
 })
 

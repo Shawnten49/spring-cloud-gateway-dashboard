@@ -5,6 +5,7 @@ Spring Cloud Gateway 管理后台：登录后可查看、修改、保存网关�
 ## 功能
 
 - 登录认证：用户表 + JWT（12 小时），`ADMIN`（可读写）/ `VIEWER`（只读）两种角色，预置 `admin` / `viewer` 账号
+- 权限配置：接口访问权限规则存于数据库，方法 + 路径 + 允许角色 + 优先级，修改后即时生效（新增模块无需改代码）
 - 路由管理：路由（URI、order、predicates、filters、metadata、enabled）的增删改查，可停用/启用，保存前做服务端强校验（工厂名 + 参数绑定）
 - 动态生效：数据库为路由配置唯一真源，保存/删除/停用后自动触发 `RefreshRoutesEvent` 热刷新，无需重启
 - 网关状态：只读展示健康状态、最近刷新时间、当前生效路由，用于验证"保存即生效"
@@ -123,6 +124,10 @@ mvn spring-boot:run            # http://localhost:8088，需 Nacos（127.0.0.1:8
 | GET | /api/meta/factories?type=predicate\|filter | 支持的工厂名列表 | 登录 |
 | GET | /api/gateway/status | 网关健康、生效路由、最近刷新时间 | 登录 |
 | GET | /api/audit-logs?page=&size= | 操作审计分页 | 登录 |
+| GET | /api/permission-rules | 权限规则列表 | ADMIN |
+| POST | /api/permission-rules | 新增权限规则（即时生效） | ADMIN |
+| PUT | /api/permission-rules/{id} | 修改权限规则 | ADMIN |
+| DELETE | /api/permission-rules/{id} | 删除权限规则（内置规则不可删除） | ADMIN |
 
 统一响应体：`{ "code": 200, "message": "ok", "data": ... }`。
 

@@ -69,3 +69,25 @@ export interface PageResult<T> {
   size: number
   total: number
 }
+
+export interface PermissionRule {
+  id: number
+  name: string
+  httpMethod: string
+  pathPattern: string
+  roles: string
+  priority: number
+  enabled: boolean
+  builtin: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PermissionRuleRequest {
+  name: string
+  httpMethod: string
+  pathPattern: string
+  roles: string
+  priority: number
+  enabled: boolean
+}

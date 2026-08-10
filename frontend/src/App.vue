@@ -74,6 +74,7 @@ async function handleCommand(command: string) {
         <el-menu-item index="/routes">路由管理</el-menu-item>
         <el-menu-item index="/gateway">网关状态</el-menu-item>
         <el-menu-item index="/audit">操作日志</el-menu-item>
+        <el-menu-item v-if="auth.isAdmin" index="/permissions">权限配置</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

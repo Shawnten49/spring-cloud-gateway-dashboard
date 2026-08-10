@@ -29,8 +29,8 @@ gateway-dashboard:
   external-gateways:
     # 外部网关实例（需集成 DbRouteDefinitionLocator + /internal/routes/refresh）：
     # 仪表盘保存路由后会向这些网关推送刷新；网关侧另有轮询兜底。
-    # - base-url: http://localhost:8088
-    #   token: gd-internal-token-dev
+    - base-url: http://localhost:8088
+      token: gd-internal-token-dev
 
 logging:
   level:

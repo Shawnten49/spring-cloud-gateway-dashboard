@@ -11,17 +11,17 @@ import java.util.List;
  * 仪表盘每次保存路由后，会向这些网关推送刷新。
  */
 @Component
-@ConfigurationProperties(prefix = "gateway-dashboard.external-gateways")
+@ConfigurationProperties(prefix = "gateway-dashboard")
 public class ExternalGatewayProperties {
 
-    private List<Gateway> gateways = new ArrayList<>();
+    private List<Gateway> externalGateways = new ArrayList<>();
 
-    public List<Gateway> getGateways() {
-        return gateways;
+    public List<Gateway> getExternalGateways() {
+        return externalGateways;
     }
 
-    public void setGateways(List<Gateway> gateways) {
-        this.gateways = gateways;
+    public void setExternalGateways(List<Gateway> externalGateways) {
+        this.externalGateways = externalGateways;
     }
 
     public static class Gateway {

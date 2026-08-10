@@ -55,5 +55,65 @@ onMounted(load)
       <el-table-column prop="order" label="顺序" width="70" />
       <template #empty>暂无生效路由</template>
     </el-table>
+
+    <el-divider content-position="left">外部网关实例</el-divider>
+
+    <el-alert
+      v-if="!status?.externalGateways?.length"
+      type="info"
+      :closable="false"
+      title="未配置外部网关实例（application.yml 的 gateway-dashboard.external-gateways），当前仅管理内嵌网关"
+      style="margin-bottom: 12px"
+    />
+
+    <div v-for="gw in status?.externalGateways ?? []" :key="gw.baseUrl" class="gw-card">
+      <el-card>
+        <template #header>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span style="font-weight: 600">{{ gw.baseUrl }}</span>
+            <el-tag :type="gw.online ? 'success' : 'danger'">
+              {{ gw.online ? '在线' : '离线' }}
+            </el-tag>
+          </div>
+        </template>
+
+        <el-descriptions :column="2" size="small" style="margin-bottom: 10px">
+          <el-descriptions-item label="最近检查">
+            {{ formatTime(gw.lastCheckedAt) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="最近推送">
+            <template v-if="gw.push">
+              <el-tag :type="gw.push.success ? 'success' : 'danger'" size="small">
+                {{ gw.push.success ? '成功' : '失败' }}
+              </el-tag>
+              <span style="margin-left: 6px">{{ formatTime(gw.push.lastPushAt) }}</span>
+              <div v-if="gw.push.error" style="color: #f56c6c; font-size: 12px">
+                {{ gw.push.error }}
+              </div>
+            </template>
+            <span v-else>-</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="生效路由数">
+            {{ gw.effectiveRoutes.length }}
+          </el-descriptions-item>
+          <el-descriptions-item v-if="gw.error" label="连接异常" :span="2">
+            <span style="color: #f56c6c; font-size: 12px">{{ gw.error }}</span>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-table :data="gw.effectiveRoutes" size="small" border max-height="260">
+          <el-table-column prop="routeId" label="路由 ID" min-width="160" />
+          <el-table-column prop="uri" label="目标地址" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="order" label="顺序" width="70" />
+          <template #empty>离线或无生效路由</template>
+        </el-table>
+      </el-card>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.gw-card {
+  margin-bottom: 14px;
+}
+</style>

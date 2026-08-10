@@ -50,6 +50,28 @@ export interface GatewayStatus {
   health: string
   lastRefreshAt: string | null
   effectiveRoutes: RouteConfig[]
+  externalGateways: ExternalGatewayStatus[]
+}
+
+export interface RouteSummary {
+  routeId: string
+  uri: string
+  order: number
+}
+
+export interface PushInfo {
+  lastPushAt: string | null
+  success: boolean
+  error: string | null
+}
+
+export interface ExternalGatewayStatus {
+  baseUrl: string
+  online: boolean
+  push: PushInfo | null
+  lastCheckedAt: string
+  effectiveRoutes: RouteSummary[]
+  error: string | null
 }
 
 export interface AuditLog {

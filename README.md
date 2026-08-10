@@ -37,6 +37,8 @@ gateway-dashboard:
 
 推送失败不影响保存结果：网关侧另有 5 秒版本轮询兜底，路由最多延迟一个轮询周期生效。
 
+配置后，仪表盘"网关状态"页会展示每个外部网关实例：在线状态、最近推送结果与时间、该实例的生效路由列表。
+
 ## 技术栈
 
 - 后端：Java 21、Spring Boot 3.5.x、Spring Cloud 2025.0.x（Northfields）、Spring Cloud Gateway 4.3.x（WebFlux）、Spring Security + JWT、Spring Data JPA、Flyway、MySQL 8（测试用 H2 MySQL 兼容模式）
@@ -122,7 +124,7 @@ mvn spring-boot:run            # http://localhost:8088，需 Nacos（127.0.0.1:8
 | POST | /api/routes/{routeId}/enabled | 启用/停用 | ADMIN |
 | POST | /api/routes/validate | 只校验不保存 | 登录 |
 | GET | /api/meta/factories?type=predicate\|filter | 支持的工厂名列表 | 登录 |
-| GET | /api/gateway/status | 网关健康、生效路由、最近刷新时间 | 登录 |
+| GET | /api/gateway/status | 网关健康、生效路由、最近刷新时间、外部网关实例状态（在线/最近推送/生效路由） | 登录 |
 | GET | /api/audit-logs?page=&size= | 操作审计分页 | 登录 |
 | GET | /api/permission-rules | 权限规则列表 | ADMIN |
 | POST | /api/permission-rules | 新增权限规则（即时生效） | ADMIN |

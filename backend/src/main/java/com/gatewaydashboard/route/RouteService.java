@@ -47,9 +47,8 @@ public class RouteService {
         }
         RouteConfig entity = assembler.toEntity(request);
         entity = repository.save(entity);
-        refreshService.refresh();
         auditService.record(actor, "CREATE", entity.getRouteId(), null, assembler.toJson(entity), ip);
-        notifyExternalGateways();
+        scheduleRefreshAfterCommit();
         return assembler.toResponse(entity);
     }
 
@@ -68,9 +67,8 @@ public class RouteService {
         } catch (ObjectOptimisticLockingFailureException e) {
             throw BusinessException.conflict("该路由已被其他操作修改，请刷新后重试");
         }
-        refreshService.refresh();
         auditService.record(actor, "UPDATE", saved.getRouteId(), before, assembler.toJson(saved), ip);
-        notifyExternalGateways();
+        scheduleRefreshAfterCommit();
         return assembler.toResponse(saved);
     }
 
@@ -78,9 +76,8 @@ public class RouteService {
     public void delete(String routeId, String actor, String ip) {
         RouteConfig existing = find(routeId);
         repository.delete(existing);
-        refreshService.refresh();
         auditService.record(actor, "DELETE", existing.getRouteId(), assembler.toJson(existing), null, ip);
-        notifyExternalGateways();
+        scheduleRefreshAfterCommit();
     }
 
     @Transactional
@@ -95,21 +92,26 @@ public class RouteService {
         String before = assembler.toJson(existing);
         existing.setEnabled(enabled);
         RouteConfig saved = repository.saveAndFlush(existing);
-        refreshService.refresh();
         auditService.record(actor, enabled ? "ENABLE" : "DISABLE", saved.getRouteId(), before, assembler.toJson(saved), ip);
-        notifyExternalGateways();
+        scheduleRefreshAfterCommit();
         return assembler.toResponse(saved);
     }
 
-    private void notifyExternalGateways() {
+    /**
+     * 事务提交后再刷新：本地网关重新从库加载（保证读到已提交数据），
+     * 同时向配置的外部网关推送刷新通知。
+     */
+    private void scheduleRefreshAfterCommit() {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
+                    refreshService.refresh();
                     externalGatewayRefreshService.refreshAll();
                 }
             });
         } else {
+            refreshService.refresh();
             externalGatewayRefreshService.refreshAll();
         }
     }

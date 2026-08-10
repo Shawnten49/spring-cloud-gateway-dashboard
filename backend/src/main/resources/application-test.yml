@@ -4,3 +4,9 @@ spring:
     username: sa
     password: ""
     driver-class-name: org.h2.Driver
+
+# 测试环境不依赖本地外部网关实例：统一指向不可达端口，保证测试可重复
+gateway-dashboard:
+  external-gateways:
+    - base-url: http://localhost:19999
+      token: test-token

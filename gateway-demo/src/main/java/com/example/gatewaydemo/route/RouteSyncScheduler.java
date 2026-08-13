@@ -65,8 +65,10 @@ public class RouteSyncScheduler {
 
     private String currentChecksum() {
         try {
+            // 行数覆盖新建/删除；版本号总和覆盖任何一行的更新（每次更新 version 必然 +1）。
+            // 不能用 MAX(version)：更新非最大版本号的行时 MAX 不变，会漏掉变更。
             return jdbcTemplate.queryForObject(
-                    "SELECT CONCAT(COUNT(*), ':', COALESCE(MAX(version), 0)) FROM route_config",
+                    "SELECT CONCAT(COUNT(*), ':', COALESCE(SUM(version), 0)) FROM route_config",
                     String.class);
         } catch (Exception e) {
             log.warn("读取路由配置版本失败: {}", e.getMessage());

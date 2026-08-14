@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.PathContainer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPatternParser;
 
@@ -74,7 +76,7 @@ public class PermissionRuleService {
         rulesAfter.add(rule);
         guardAdminSelfAccess(rulesAfter);
         PermissionRule saved = repository.save(rule);
-        reload();
+        reloadAfterCommit();
         log.info("新增权限规则: {} {} {} -> {}", saved.getHttpMethod(), saved.getPathPattern(), saved.getRoles(), saved.getPriority());
         return RuleResponse.from(saved);
     }
@@ -92,7 +94,7 @@ public class PermissionRuleService {
         rulesAfter.replaceAll(r -> r.getId().equals(id) ? rule : r);
         guardAdminSelfAccess(rulesAfter);
         PermissionRule saved = repository.saveAndFlush(rule);
-        reload();
+        reloadAfterCommit();
         log.info("更新权限规则 #{}: {} {} {} -> {}", saved.getId(), saved.getHttpMethod(), saved.getPathPattern(), saved.getRoles(), saved.getPriority());
         return RuleResponse.from(saved);
     }
@@ -107,12 +109,14 @@ public class PermissionRuleService {
         rulesAfter.removeIf(r -> r.getId().equals(id));
         guardAdminSelfAccess(rulesAfter);
         repository.delete(rule);
-        reload();
+        reloadAfterCommit();
         log.info("删除权限规则 #{}: {} {}", id, rule.getHttpMethod(), rule.getPathPattern());
     }
 
     /**
      * 重新从数据库加载规则（启动、以及每次增删改后调用），使改动即时生效。
+     * 启动/独立调用直接加载；增删改场景在事务提交后再加载（与 RouteService 的 afterCommit 模式一致），
+     * 避免提交前更新缓存、事务回滚后缓存与库不一致。
      */
     public void reload() {
         List<CachedRule> cached = repository.findAllByOrderByPriorityAscIdAsc().stream()
@@ -120,6 +124,19 @@ public class PermissionRuleService {
                 .map(CachedRule::from)
                 .toList();
         rules.set(cached);
+    }
+
+    private void reloadAfterCommit() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    reload();
+                }
+            });
+        } else {
+            reload();
+        }
     }
 
     /**

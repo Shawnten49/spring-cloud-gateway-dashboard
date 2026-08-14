@@ -6,7 +6,6 @@ import { authApi } from '@/api/auth'
 vi.mock('@/api/auth', () => ({
   authApi: {
     login: vi.fn(),
-    me: vi.fn(),
     changePassword: vi.fn()
   }
 }))

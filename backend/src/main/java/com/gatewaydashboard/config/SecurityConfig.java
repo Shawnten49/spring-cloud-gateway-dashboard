@@ -2,7 +2,7 @@ package com.gatewaydashboard.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gatewaydashboard.auth.JwtAuthenticationFilter;
-import com.gatewaydashboard.common.ApiResponse;
+import com.gatewaydashboard.common.HttpJsonWriter;
 import com.gatewaydashboard.permission.DynamicPermissionAuthorizationManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,9 +48,11 @@ public class SecurityConfig {
                 .logout(ServerHttpSecurity.LogoutSpec::disable)
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint((exchange, ex) ->
-                                writeJson(exchange, HttpStatus.UNAUTHORIZED, 401, "未登录或登录已过期"))
+                                HttpJsonWriter.writeError(exchange, objectMapper,
+                                        HttpStatus.UNAUTHORIZED, 401, "未登录或登录已过期"))
                         .accessDeniedHandler((exchange, ex) ->
-                                writeJson(exchange, HttpStatus.FORBIDDEN, 403, "没有权限访问该接口")))
+                                HttpJsonWriter.writeError(exchange, objectMapper,
+                                        HttpStatus.FORBIDDEN, 403, "没有权限访问该接口")))
                 .authorizeExchange(exchanges -> exchanges
                         // 引导规则：保证登录与健康检查永远可用
                         .pathMatchers("/api/auth/login", "/actuator/health").permitAll()
@@ -58,20 +60,6 @@ public class SecurityConfig {
                         .anyExchange().access(dynamicPermissionAuthorizationManager))
                 .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .build();
-    }
-
-    /**
-     * 未认证/无权限时返回统一 JSON（而非浏览器 Basic 认证弹框）。
-     */
-    private Mono<Void> writeJson(ServerWebExchange exchange, HttpStatus status, int code, String message) {
-        exchange.getResponse().setStatusCode(status);
-        exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        try {
-            byte[] body = objectMapper.writeValueAsBytes(new ApiResponse<Void>(code, message, null));
-            return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(body)));
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
     }
 
     @Bean

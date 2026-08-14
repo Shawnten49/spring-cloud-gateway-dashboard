@@ -33,10 +33,6 @@ export const useAuthStore = defineStore('auth', {
       localStorage.setItem(TOKEN_KEY, res.token)
       localStorage.setItem(USER_KEY, JSON.stringify(res.user))
     },
-    async fetchMe() {
-      this.user = await authApi.me()
-      localStorage.setItem(USER_KEY, JSON.stringify(this.user))
-    },
     async changePassword(oldPassword: string, newPassword: string) {
       await authApi.changePassword(oldPassword, newPassword)
     },

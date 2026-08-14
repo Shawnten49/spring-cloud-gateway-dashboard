@@ -2,6 +2,8 @@ package com.example.gatewaydemo.route;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinition;
@@ -26,6 +28,8 @@ import java.util.Map;
 @Component
 public class DbRouteDefinitionLocator implements RouteDefinitionLocator {
 
+    private static final Logger log = LoggerFactory.getLogger(DbRouteDefinitionLocator.class);
+
     private static final TypeReference<List<Map<String, Object>>> STEP_LIST_TYPE = new TypeReference<>() {
     };
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {
@@ -42,10 +46,13 @@ public class DbRouteDefinitionLocator implements RouteDefinitionLocator {
     @Override
     public Flux<RouteDefinition> getRouteDefinitions() {
         // 阻塞 JDBC 查询卸到 boundedElastic，避免在 Netty 事件循环上执行（网关路由刷新/转发线程）。
+        // 单行配置损坏（非法 JSON 等）只跳过该行并记录 ERROR：不能让一条坏数据冻结全部生效路由。
         return Mono.fromCallable(this::queryEnabledRoutes)
                 .subscribeOn(Schedulers.boundedElastic())
                 .flatMapMany(Flux::fromIterable)
-                .map(this::toDefinition);
+                .map(this::toDefinition)
+                .onErrorContinue((error, row) ->
+                        log.error("跳过无法解析的路由行 routeId={}（{}）", ((RouteConfigRow) row).routeId(), error.getMessage()));
     }
 
     private List<RouteConfigRow> queryEnabledRoutes() {

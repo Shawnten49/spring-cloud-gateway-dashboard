@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
@@ -35,15 +34,8 @@ public class UnifiedNotFoundWebExceptionHandler implements WebExceptionHandler {
     @Override
     public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
         if (isNotFound(ex, exchange)) {
-            exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
-            exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-            try {
-                byte[] body = objectMapper.writeValueAsBytes(ApiResponse.fail(404, "接口不存在"));
-                return exchange.getResponse().writeWith(
-                        Mono.just(exchange.getResponse().bufferFactory().wrap(body)));
-            } catch (Exception e) {
-                return Mono.error(e);
-            }
+            return HttpJsonWriter.writeError(exchange, objectMapper,
+                    HttpStatus.NOT_FOUND, 404, "接口不存在");
         }
         return Mono.error(ex);
     }

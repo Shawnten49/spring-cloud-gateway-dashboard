@@ -43,7 +43,7 @@ async function submit() {
         <el-button type="primary" style="width: 100%" :loading="loading" @click="submit">登 录</el-button>
       </el-form>
       <p style="color: #909399; font-size: 12px; text-align: center; margin-bottom: 0">
-        预置账号：admin / admin123（管理员），viewer / viewer123（只读）
+        预置账号与初始口令请向管理员索取（生产环境请通过环境变量配置强口令）
       </p>
     </el-card>
   </div>

@@ -5,6 +5,7 @@ import com.gatewaydashboard.auth.JwtAuthenticationFilter;
 import com.gatewaydashboard.common.ApiResponse;
 import com.gatewaydashboard.permission.DynamicPermissionAuthorizationManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -32,12 +33,14 @@ public class SecurityConfig {
     private final DynamicPermissionAuthorizationManager dynamicPermissionAuthorizationManager;
     private final ObjectMapper objectMapper;
 
+    @Value("${gateway-dashboard.cors.allowed-origins:http://localhost:5173,http://127.0.0.1:5173}")
+    private List<String> allowedOrigins;
+
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .cors(cors -> {
-                })
+                // CORS 由 CorsWebFilter bean 统一处理；此处不再配置空的 cors()，避免双配置混淆
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .logout(ServerHttpSecurity.LogoutSpec::disable)
@@ -77,7 +80,7 @@ public class SecurityConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:5173", "http://127.0.0.1:5173"));
+        config.setAllowedOriginPatterns(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

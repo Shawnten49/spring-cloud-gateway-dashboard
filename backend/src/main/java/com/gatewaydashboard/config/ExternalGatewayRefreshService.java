@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,6 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Service
 public class ExternalGatewayRefreshService {
+
+    private static final Duration PUSH_TIMEOUT = Duration.ofSeconds(3);
 
     private final ExternalGatewayProperties properties;
     private final WebClient webClient;
@@ -40,6 +43,7 @@ public class ExternalGatewayRefreshService {
                     .header("X-Internal-Token", gateway.getToken())
                     .retrieve()
                     .bodyToMono(String.class)
+                    .timeout(PUSH_TIMEOUT)
                     .subscribe(
                             body -> {
                                 pushRecords.put(baseUrl, new PushRecord(Instant.now(), true, null));

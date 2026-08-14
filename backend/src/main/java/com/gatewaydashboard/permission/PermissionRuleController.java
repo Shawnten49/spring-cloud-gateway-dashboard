@@ -1,6 +1,7 @@
 package com.gatewaydashboard.permission;
 
 import com.gatewaydashboard.common.ApiResponse;
+import com.gatewaydashboard.common.BlockingSupport;
 import com.gatewaydashboard.permission.PermissionRuleDtos.RuleRequest;
 import com.gatewaydashboard.permission.PermissionRuleDtos.RuleResponse;
 import jakarta.validation.Valid;
@@ -26,22 +27,24 @@ public class PermissionRuleController {
 
     @GetMapping
     public Mono<ApiResponse<List<RuleResponse>>> list() {
-        return Mono.just(ApiResponse.ok(permissionRuleService.list()));
+        return BlockingSupport.call(() -> ApiResponse.ok(permissionRuleService.list()));
     }
 
     @PostMapping
     public Mono<ApiResponse<RuleResponse>> create(@Valid @RequestBody RuleRequest request) {
-        return Mono.just(ApiResponse.ok(permissionRuleService.create(request)));
+        return BlockingSupport.call(() -> ApiResponse.ok(permissionRuleService.create(request)));
     }
 
     @PutMapping("/{id}")
     public Mono<ApiResponse<RuleResponse>> update(@PathVariable Long id, @Valid @RequestBody RuleRequest request) {
-        return Mono.just(ApiResponse.ok(permissionRuleService.update(id, request)));
+        return BlockingSupport.call(() -> ApiResponse.ok(permissionRuleService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public Mono<ApiResponse<Void>> delete(@PathVariable Long id) {
-        return Mono.fromRunnable(() -> permissionRuleService.delete(id))
-                .thenReturn(ApiResponse.ok());
+        return BlockingSupport.call(() -> {
+            permissionRuleService.delete(id);
+            return ApiResponse.<Void>ok();
+        });
     }
 }

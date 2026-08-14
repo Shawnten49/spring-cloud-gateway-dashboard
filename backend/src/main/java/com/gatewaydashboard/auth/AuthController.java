@@ -5,6 +5,7 @@ import com.gatewaydashboard.auth.AuthDtos.LoginRequest;
 import com.gatewaydashboard.auth.AuthDtos.LoginResponse;
 import com.gatewaydashboard.auth.AuthDtos.UserSummary;
 import com.gatewaydashboard.common.ApiResponse;
+import com.gatewaydashboard.common.BlockingSupport;
 import com.gatewaydashboard.common.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,19 +26,21 @@ public class AuthController {
 
     @PostMapping("/login")
     public Mono<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
-        return Mono.just(ApiResponse.ok(authService.login(request)));
+        return BlockingSupport.call(() -> ApiResponse.ok(authService.login(request)));
     }
 
     @GetMapping("/me")
     public Mono<ApiResponse<UserSummary>> me() {
         return SecurityUtils.currentUsername()
-                .map(username -> ApiResponse.ok(authService.me(username)));
+                .flatMap(username -> BlockingSupport.call(() -> ApiResponse.ok(authService.me(username))));
     }
 
     @PutMapping("/password")
     public Mono<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         return SecurityUtils.currentUsername()
-                .doOnNext(username -> authService.changePassword(username, request))
-                .thenReturn(ApiResponse.ok());
+                .flatMap(username -> BlockingSupport.call(() -> {
+                    authService.changePassword(username, request);
+                    return ApiResponse.<Void>ok();
+                }));
     }
 }

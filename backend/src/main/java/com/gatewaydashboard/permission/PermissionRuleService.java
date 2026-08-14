@@ -13,6 +13,7 @@ import org.springframework.web.util.pattern.PathPatternParser;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -23,6 +24,10 @@ import java.util.stream.Collectors;
 /**
  * 接口权限规则：数据库配置、按优先级匹配、修改后即时生效（无需重启）。
  * 角色语义：* = 公开；AUTHENTICATED = 任意登录用户；其余为逗号分隔的角色列表。
+ *
+ * 自我保护（ADR 0005）：任何增删改都必须保证 ADMIN 对权限配置模块的全部写端点
+ * （POST/PUT/DELETE /api/permission-rules）以及列表 GET 依然可达，防止把自己锁死；
+ * 同时 update 禁止修改内置规则，杜绝"建 VIEWER 规则 → 改内置规则提权"的绕过链（安全评审 S-13）。
  */
 @Slf4j
 @Service
@@ -30,7 +35,15 @@ public class PermissionRuleService {
 
     private static final Set<String> ALLOWED_METHODS =
             Set.of("*", "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD");
-    private static final String SELF_GUARD_PATH = "/api/permission-rules/__guard__";
+    private static final int MAX_PRIORITY = 999;
+
+    /** 自我保护模拟的写端点：POST 建规则本身 + PUT/DELETE 操作任意规则。 */
+    private static final String[] GUARD_METHODS = {"GET", "POST", "PUT", "DELETE"};
+    private static final String[] GUARD_PATHS = {
+            "/api/permission-rules",
+            "/api/permission-rules/1",   // PUT/DELETE 的 {id} 路径
+            "/api/permission-rules/__guard__"
+    };
 
     private final PermissionRuleRepository repository;
     private final AtomicReference<List<CachedRule>> rules = new AtomicReference<>(List.of());
@@ -69,6 +82,10 @@ public class PermissionRuleService {
     @Transactional
     public RuleResponse update(Long id, RuleRequest request) {
         PermissionRule rule = find(id);
+        if (rule.isBuiltin()) {
+            // 内置规则是权限模块默认可用的底线，禁止通过 update 改写（删除已被 delete 拦截）。
+            throw BusinessException.badRequest("内置规则不可修改");
+        }
         validateRequest(request);
         apply(rule, request);
         List<PermissionRule> rulesAfter = new ArrayList<>(repository.findAll());
@@ -141,24 +158,40 @@ public class PermissionRuleService {
         } catch (Exception e) {
             throw BusinessException.badRequest("路径模式不合法: " + e.getMessage());
         }
+        if (normalizeRoles(request.roles()).isEmpty()) {
+            throw BusinessException.badRequest("角色不能为空或全为空白");
+        }
+        int priority = request.priority() == null ? 0 : request.priority();
+        if (priority < 0 || priority > MAX_PRIORITY) {
+            throw BusinessException.badRequest("优先级必须在 0-" + MAX_PRIORITY + " 之间");
+        }
     }
 
     /**
-     * 自我保护：任何改动后，ADMIN 必须仍能访问权限配置模块的写接口，防止把自己锁死。
+     * 自我保护：任何改动后，ADMIN 必须仍能访问权限配置模块的全部写端点与列表 GET，
+     * 防止把自己锁死（也堵住"VIEWER 规则压过内置 → 提权改内置规则"的绕过链）。
      */
     private void guardAdminSelfAccess(List<PermissionRule> rulesAfter) {
-        List<CachedRule> cached = rulesAfter.stream()
+        List<CachedRule> cached = toCached(rulesAfter);
+        for (String method : GUARD_METHODS) {
+            for (String path : GUARD_PATHS) {
+                CachedRule matched = CachedRule.match(cached, method, path);
+                if (matched == null || !matched.roles().contains("ADMIN")) {
+                    throw BusinessException.badRequest(
+                            "禁止保存：该改动会导致 ADMIN 失去权限配置模块 " + method + " " + path + " 的访问权限");
+                }
+            }
+        }
+    }
+
+    private List<CachedRule> toCached(List<PermissionRule> rulesAfter) {
+        return rulesAfter.stream()
                 .filter(PermissionRule::isEnabled)
-                .sorted((a, b) -> a.getPriority() != b.getPriority()
-                        ? Integer.compare(a.getPriority(), b.getPriority())
-                        : Long.compare(a.getId() == null ? Long.MAX_VALUE : a.getId(),
-                        b.getId() == null ? Long.MAX_VALUE : b.getId()))
+                .sorted(Comparator
+                        .comparingInt(PermissionRule::getPriority)
+                        .thenComparing(Comparator.comparing(r -> r.getId() == null ? Long.MAX_VALUE : r.getId())))
                 .map(CachedRule::from)
                 .toList();
-        CachedRule matched = CachedRule.match(cached, "POST", SELF_GUARD_PATH);
-        if (matched == null || !matched.roles().contains("ADMIN")) {
-            throw BusinessException.badRequest("禁止保存：该改动会导致 ADMIN 失去权限配置模块的访问权限");
-        }
     }
 
     private PermissionRule find(Long id) {

@@ -1,0 +1,45 @@
+# 生产环境配置：敏感值一律从环境变量注入，无默认值。
+# 启动示例：
+#   SPRING_PROFILES_ACTIVE=prod \
+#   JWT_SECRET=<强随机密钥，至少 32 字节> \
+#   GD_INTERNAL_TOKEN=<与外部网关 internal-token 一致> \
+#   SPRING_DATASOURCE_URL=jdbc:mysql://... \
+#   SPRING_DATASOURCE_USERNAME=... \
+#   SPRING_DATASOURCE_PASSWORD=... \
+#   java -jar gateway-dashboard-backend.jar
+#
+# 说明：
+# - JWT_SECRET 缺失或仍为开发默认值（gateway-dashboard-dev-secret-...）时，应用将拒绝启动（见 JwtService）。
+# - 外部网关内部 token 建议生产环境显式注入；为空时推送会被外部网关拒绝（默认拒绝语义），
+#   由网关侧轮询兜底，路由最多延迟一个轮询周期生效。
+# - 本文件不配置 spring.datasource：请在环境变量中提供（见 README「配置项」）。
+
+spring:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+gateway-dashboard:
+  jwt:
+    secret: ${JWT_SECRET:}
+    expire-hours: ${JWT_EXPIRE_HOURS:12}
+  seed:
+    # 生产必须显式提供预置账号口令（缺失且账号不存在时拒绝启动，见 SeedDataInitializer）
+    admin-password: ${GD_ADMIN_PASSWORD:}
+    viewer-password: ${GD_VIEWER_PASSWORD:}
+  cors:
+    allowed-origins: ${GD_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  external-gateways:
+    - base-url: ${GD_GATEWAY_BASE_URL:}
+      token: ${GD_INTERNAL_TOKEN:}
+
+logging:
+  level:
+    com.gatewaydashboard: INFO

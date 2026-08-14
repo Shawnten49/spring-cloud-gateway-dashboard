@@ -1,0 +1,6 @@
+# 防止宿主 macOS 的 node_modules（含 darwin 平台二进制）覆盖容器内 Linux 依赖（评审 P1-D）
+node_modules/
+dist/
+.git
+.idea/
+*.log

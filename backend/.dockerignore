@@ -1,0 +1,8 @@
+# 防止宿主 macOS 的构建产物/本地依赖进入镜像（评审 P1-D）
+target/
+data/
+*.log
+logs/
+.git
+.idea/
+*.iml

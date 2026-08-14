@@ -1,6 +1,7 @@
 package com.gatewaydashboard.route;
 
 import com.gatewaydashboard.common.ApiResponse;
+import com.gatewaydashboard.common.BlockingSupport;
 import com.gatewaydashboard.common.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +27,6 @@ public class RouteMetaController {
             case "filter" -> List.copyOf(routeValidator.filterFactoryNames());
             default -> throw BusinessException.badRequest("type 仅支持 predicate 或 filter");
         };
-        return Mono.just(ApiResponse.ok(Map.of(type, names)));
+        return BlockingSupport.call(() -> ApiResponse.ok(Map.of(type, names)));
     }
 }

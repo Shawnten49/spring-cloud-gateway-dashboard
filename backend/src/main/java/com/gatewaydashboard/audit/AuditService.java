@@ -3,6 +3,7 @@ package com.gatewaydashboard.audit;
 import com.gatewaydashboard.audit.AuditDtos.AuditLogResponse;
 import com.gatewaydashboard.common.PageResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -11,9 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuditService {
-
-    private static final int MAX_JSON_LENGTH = 5000;
 
     private final AuditLogRepository repository;
 
@@ -41,10 +41,17 @@ public class AuditService {
                 result.getTotalElements());
     }
 
+    /**
+     * 截断到完整 JSON 边界（最后一个对象/数组结束符），避免审计内容成为非法 JSON。
+     * 超长时记录日志便于排查，入库内容仍为可解析的完整 JSON。
+     */
     private String truncate(String value) {
-        if (value == null || value.length() <= MAX_JSON_LENGTH) {
+        if (value == null || value.length() <= AuditLog.JSON_COLUMN_LENGTH) {
             return value;
         }
-        return value.substring(0, MAX_JSON_LENGTH);
+        log.warn("审计快照超过 {} 字符，已截断（原始长度 {}）", AuditLog.JSON_COLUMN_LENGTH, value.length());
+        String cut = value.substring(0, AuditLog.JSON_COLUMN_LENGTH);
+        int boundary = Math.max(cut.lastIndexOf('}'), cut.lastIndexOf(']'));
+        return boundary > 0 ? cut.substring(0, boundary) : cut;
     }
 }

@@ -23,9 +23,15 @@ management:
 
 gateway-dashboard:
   jwt:
-    # 生产环境请通过 JWT_SECRET 环境变量覆盖
+    # 生产环境请通过 JWT_SECRET 环境变量覆盖（非 dev/local/test profile 下使用默认值会拒绝启动）
     secret: ${JWT_SECRET:gateway-dashboard-dev-secret-change-me-0123456789}
     expire-hours: 12
+  seed:
+    # 首次启动预置账号口令；生产通过 GD_ADMIN_PASSWORD / GD_VIEWER_PASSWORD 覆盖
+    admin-password: ${GD_ADMIN_PASSWORD:admin123}
+    viewer-password: ${GD_VIEWER_PASSWORD:viewer123}
+  cors:
+    allowed-origins: ${GD_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
   external-gateways:
     # 外部网关实例（需集成 DbRouteDefinitionLocator + /internal/routes/refresh）：
     # 仪表盘保存路由后会向这些网关推送刷新；网关侧另有轮询兜底。

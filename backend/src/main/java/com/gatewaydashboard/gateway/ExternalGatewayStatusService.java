@@ -39,7 +39,9 @@ public class ExternalGatewayStatusService {
     }
 
     public Mono<List<ExternalGatewayStatus>> fetchAll() {
-        List<Gateway> gateways = properties.getExternalGateways();
+        List<Gateway> gateways = properties.getExternalGateways().stream()
+                .filter(g -> g.getBaseUrl() != null && !g.getBaseUrl().isBlank())
+                .toList();
         if (gateways.isEmpty()) {
             return Mono.just(List.of());
         }

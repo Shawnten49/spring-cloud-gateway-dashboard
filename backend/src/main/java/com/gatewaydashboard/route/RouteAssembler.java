@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gatewaydashboard.route.RouteDto.RouteRequest;
 import com.gatewaydashboard.route.RouteDto.RouteResponse;
 import com.gatewaydashboard.route.RouteDto.Step;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;
+import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class RouteAssembler {
 
@@ -73,6 +76,23 @@ public class RouteAssembler {
                 null);
     }
 
+    /**
+     * 网关"生效路由"视图：来自 CachingRouteLocator 的 Route（已在内存中生效），
+     * 只展示路由级信息；predicate/filter 细节在运行态不可还原为结构化 Step，置空。
+     */
+    public RouteResponse toResponse(Route route) {
+        return new RouteResponse(
+                route.getId(),
+                route.getUri() == null ? "" : route.getUri().toString(),
+                route.getOrder(),
+                true,
+                List.of(),
+                List.of(),
+                route.getMetadata(),
+                0,
+                null);
+    }
+
     public RouteDefinition toDefinition(RouteConfig entity) {
         RouteDefinition definition = new RouteDefinition();
         definition.setId(entity.getRouteId());
@@ -99,7 +119,10 @@ public class RouteAssembler {
         try {
             return objectMapper.writeValueAsString(toResponse(entity));
         } catch (Exception e) {
-            return null;
+            // 审计是"保存即生效"（ADR 0003）唯一的追溯手段：序列化失败绝不能静默丢失，
+            // 记录日志并写入显式占位串，保证审计行内容可被发现而非静默为 null。
+            log.error("路由快照序列化失败（routeId={}），审计内容将写入占位串", entity.getRouteId(), e);
+            return "{\"error\":\"snapshot-serialization-failed\",\"routeId\":\"" + entity.getRouteId() + "\"}";
         }
     }
 

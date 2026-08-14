@@ -35,6 +35,8 @@ gateway-dashboard:
       token: gd-internal-token-dev   # 与网关工程的 internal-token 一致
 ```
 
+> 网关侧内部接口（`/internal/routes/**`）为 **fail-closed**：`internal-token` 未配置时拒绝启动，token 缺失/错误一律 401（恒定时间比较）。生产请用强随机 token（如 `openssl rand -hex 32`）并通过环境变量注入。
+
 推送失败不影响保存结果：网关侧另有 5 秒版本轮询兜底，路由最多延迟一个轮询周期生效。
 
 配置后，仪表盘"网关状态"页会展示每个外部网关实例：在线状态、最近推送结果与时间、该实例的生效路由列表。
@@ -104,10 +106,15 @@ mvn spring-boot:run            # http://localhost:8088，需 Nacos（127.0.0.1:8
 | 配置 | 默认值 | 说明 |
 |---|---|---|
 | `server.port` | 8080 | 后端端口 |
-| `gateway-dashboard.jwt.secret` | 见 application.yml | JWT 密钥，生产用 `JWT_SECRET` 环境变量覆盖 |
+| `gateway-dashboard.jwt.secret` | 见 application.yml | JWT 密钥；**非 dev/local/test profile 下使用默认值会拒绝启动**，生产必须用 `JWT_SECRET` 环境变量注入（至少 32 字节） |
 | `gateway-dashboard.jwt.expire-hours` | 12 | Token 有效期 |
+| `gateway-dashboard.seed.admin-password` / `.viewer-password` | admin123 / viewer123 | 首次启动预置账号口令；生产用 `GD_ADMIN_PASSWORD` / `GD_VIEWER_PASSWORD` 覆盖，账号不存在且口令为空时拒绝启动 |
+| `gateway-dashboard.cors.allowed-origins` | localhost:5173 | 允许的跨域来源，逗号分隔 |
+| `gateway-dashboard.external-gateways` | localhost:8088 | 外部网关实例；内部 token 建议生产用 `GD_INTERNAL_TOKEN` 覆盖 |
 | `spring.datasource.*`（dev） | localhost:3306 / gateway / gateway123 | MySQL 连接 |
 | `spring.datasource.*`（local） | H2 文件库 | 仅本地临时开发 |
+
+**生产部署（prod profile）**：`SPRING_PROFILES_ACTIVE=prod` 时，`JWT_SECRET`、`GD_ADMIN_PASSWORD`、`GD_VIEWER_PASSWORD` 均无默认值，缺失或使用开发默认值将拒绝启动（详见 `application-prod.yml`）。
 
 ## API 摘要
 
@@ -121,7 +128,7 @@ mvn spring-boot:run            # http://localhost:8088，需 Nacos（127.0.0.1:8
 | POST | /api/routes | 创建路由（保存即生效） | ADMIN |
 | PUT | /api/routes/{routeId} | 更新路由 | ADMIN |
 | DELETE | /api/routes/{routeId} | 删除路由 | ADMIN |
-| POST | /api/routes/{routeId}/enabled | 启用/停用 | ADMIN |
+| POST | /api/routes/{routeId}/enabled | 启用/停用（请求体必须显式给出 `{"enabled": true/false}`，缺失返回 400，避免静默停用） | ADMIN |
 | POST | /api/routes/validate | 只校验不保存 | 登录 |
 | GET | /api/meta/factories?type=predicate\|filter | 支持的工厂名列表 | 登录 |
 | GET | /api/gateway/status | 网关健康、生效路由、最近刷新时间、外部网关实例状态（在线/最近推送/生效路由） | 登录 |
@@ -136,7 +143,8 @@ mvn spring-boot:run            # http://localhost:8088，需 Nacos（127.0.0.1:8
 ## 测试
 
 ```bash
-cd backend && mvn test          # 路由校验单测 + 登录/创建/停用/审计 集成测试（H2）
+cd backend && mvn test          # 22 个用例：路由校验 + JWT 默认值治理 + 权限保护回归 + 审计全动作 + 登录/CRUD/停用/外部网关集成（H2）
+cd gateway-demo && mvn test     # 9 个用例：内部接口 token fail-closed + 轮询兜底同步（Mockito 单测，无需 MySQL/Nacos）
 cd frontend && npm test         # 路由 JSON 工具 Vitest
 ```
 

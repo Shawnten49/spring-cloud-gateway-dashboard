@@ -1,7 +1,9 @@
 package com.gatewaydashboard.route;
 
 import com.gatewaydashboard.common.ApiResponse;
+import com.gatewaydashboard.common.BlockingSupport;
 import com.gatewaydashboard.common.SecurityUtils;
+import com.gatewaydashboard.route.RouteDto.EnabledRequest;
 import com.gatewaydashboard.route.RouteDto.RouteRequest;
 import com.gatewaydashboard.route.RouteDto.RouteResponse;
 import com.gatewaydashboard.route.RouteDto.ValidationResponse;
@@ -20,7 +22,6 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/routes")
@@ -31,19 +32,20 @@ public class RouteController {
 
     @GetMapping
     public Mono<ApiResponse<List<RouteResponse>>> list(@RequestParam(required = false) String keyword) {
-        return Mono.just(ApiResponse.ok(routeService.list(keyword)));
+        return BlockingSupport.call(() -> ApiResponse.ok(routeService.list(keyword)));
     }
 
     @GetMapping("/{routeId}")
     public Mono<ApiResponse<RouteResponse>> get(@PathVariable String routeId) {
-        return Mono.just(ApiResponse.ok(routeService.get(routeId)));
+        return BlockingSupport.call(() -> ApiResponse.ok(routeService.get(routeId)));
     }
 
     @PostMapping
     public Mono<ApiResponse<RouteResponse>> create(@Valid @RequestBody RouteRequest request,
                                                    ServerWebExchange exchange) {
         return SecurityUtils.currentUsername()
-                .map(actor -> ApiResponse.ok(routeService.create(request, actor, SecurityUtils.clientIp(exchange))));
+                .flatMap(actor -> BlockingSupport.call(() ->
+                        ApiResponse.ok(routeService.create(request, actor, SecurityUtils.clientIp(exchange)))));
     }
 
     @PutMapping("/{routeId}")
@@ -51,27 +53,30 @@ public class RouteController {
                                                    @Valid @RequestBody RouteRequest request,
                                                    ServerWebExchange exchange) {
         return SecurityUtils.currentUsername()
-                .map(actor -> ApiResponse.ok(routeService.update(routeId, request, actor, SecurityUtils.clientIp(exchange))));
+                .flatMap(actor -> BlockingSupport.call(() ->
+                        ApiResponse.ok(routeService.update(routeId, request, actor, SecurityUtils.clientIp(exchange)))));
     }
 
     @DeleteMapping("/{routeId}")
     public Mono<ApiResponse<Void>> delete(@PathVariable String routeId, ServerWebExchange exchange) {
         return SecurityUtils.currentUsername()
-                .doOnNext(actor -> routeService.delete(routeId, actor, SecurityUtils.clientIp(exchange)))
-                .thenReturn(ApiResponse.ok());
+                .flatMap(actor -> BlockingSupport.call(() -> {
+                    routeService.delete(routeId, actor, SecurityUtils.clientIp(exchange));
+                    return ApiResponse.<Void>ok();
+                }));
     }
 
     @PostMapping("/{routeId}/enabled")
     public Mono<ApiResponse<RouteResponse>> setEnabled(@PathVariable String routeId,
-                                                       @RequestBody Map<String, Boolean> body,
+                                                       @Valid @RequestBody EnabledRequest body,
                                                        ServerWebExchange exchange) {
-        boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
         return SecurityUtils.currentUsername()
-                .map(actor -> ApiResponse.ok(routeService.setEnabled(routeId, enabled, actor, SecurityUtils.clientIp(exchange))));
+                .flatMap(actor -> BlockingSupport.call(() ->
+                        ApiResponse.ok(routeService.setEnabled(routeId, body.enabled(), actor, SecurityUtils.clientIp(exchange)))));
     }
 
     @PostMapping("/validate")
     public Mono<ApiResponse<ValidationResponse>> validate(@RequestBody RouteRequest request) {
-        return Mono.just(ApiResponse.ok(routeService.validateOnly(request)));
+        return BlockingSupport.call(() -> ApiResponse.ok(routeService.validateOnly(request)));
     }
 }

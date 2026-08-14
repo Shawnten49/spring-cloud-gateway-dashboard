@@ -9,6 +9,8 @@ import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -39,7 +41,15 @@ public class DbRouteDefinitionLocator implements RouteDefinitionLocator {
 
     @Override
     public Flux<RouteDefinition> getRouteDefinitions() {
-        List<RouteConfigRow> rows = jdbcTemplate.query(
+        // 阻塞 JDBC 查询卸到 boundedElastic，避免在 Netty 事件循环上执行（网关路由刷新/转发线程）。
+        return Mono.fromCallable(this::queryEnabledRoutes)
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMapMany(Flux::fromIterable)
+                .map(this::toDefinition);
+    }
+
+    private List<RouteConfigRow> queryEnabledRoutes() {
+        return jdbcTemplate.query(
                 "SELECT route_id, uri, order_no, predicates_json, filters_json, metadata_json "
                         + "FROM route_config WHERE enabled = TRUE ORDER BY order_no ASC, id ASC",
                 (rs, rowNum) -> new RouteConfigRow(
@@ -49,7 +59,6 @@ public class DbRouteDefinitionLocator implements RouteDefinitionLocator {
                         rs.getString("predicates_json"),
                         rs.getString("filters_json"),
                         rs.getString("metadata_json")));
-        return Flux.fromIterable(rows).map(this::toDefinition);
     }
 
     private RouteDefinition toDefinition(RouteConfigRow row) {

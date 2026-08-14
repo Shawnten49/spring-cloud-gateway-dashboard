@@ -38,7 +38,7 @@ public class RouteSyncScheduler {
     }
 
     @Scheduled(fixedDelayString = "${gateway-dashboard.route-sync.poll-interval-ms:5000}")
-    public void poll() {
+    public synchronized void poll() {
         String current = currentChecksum();
         if (current != null && !current.equals(lastChecksum)) {
             lastChecksum = current;
@@ -54,8 +54,9 @@ public class RouteSyncScheduler {
     /**
      * 主动推送刷新后调用：把当前数据库校验和标记为"已刷新"，
      * 使轮询不会为同一次变更重复触发；后续若校验和再次变化，轮询仍会兜底。
+     * synchronized 与 poll() 互斥，避免"推送标记"与"轮询判断"之间的竞态导致重复刷新。
      */
-    public void markRefreshed() {
+    public synchronized void markRefreshed() {
         String current = currentChecksum();
         if (current != null) {
             lastChecksum = current;

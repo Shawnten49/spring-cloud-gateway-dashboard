@@ -20,6 +20,9 @@ import java.time.Instant;
 @NoArgsConstructor
 public class AuditLog {
 
+    /** before_json / after_json 列宽，也是快照入库前的截断上限（单一事实源，见 AuditService.truncate）。 */
+    public static final int JSON_COLUMN_LENGTH = 5000;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,10 +36,10 @@ public class AuditLog {
     @Column(name = "route_id", length = 128)
     private String routeId;
 
-    @Column(name = "before_json", length = 5000)
+    @Column(name = "before_json", length = JSON_COLUMN_LENGTH)
     private String beforeJson;
 
-    @Column(name = "after_json", length = 5000)
+    @Column(name = "after_json", length = JSON_COLUMN_LENGTH)
     private String afterJson;
 
     @Column(length = 64)

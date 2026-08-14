@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -49,7 +50,7 @@ public class RouteValidator {
 
         if (request.routeId() == null || request.routeId().isBlank()) {
             errors.add("路由 ID 不能为空");
-        } else if (!request.routeId().matches("[A-Za-z0-9_.-]{1,128}")) {
+        } else if (!request.routeId().matches(RouteDto.ROUTE_ID_PATTERN)) {
             errors.add("路由 ID 只能包含字母、数字、点、下划线、连字符");
         }
 
@@ -59,7 +60,7 @@ public class RouteValidator {
             try {
                 URI uri = URI.create(request.uri());
                 String scheme = uri.getScheme();
-                if (scheme == null || !SUPPORTED_SCHEMES.contains(scheme.toLowerCase())) {
+                if (scheme == null || !SUPPORTED_SCHEMES.contains(scheme.toLowerCase(Locale.ROOT))) {
                     errors.add("目标地址协议仅支持 http/https/ws/wss/lb");
                 }
             } catch (IllegalArgumentException e) {

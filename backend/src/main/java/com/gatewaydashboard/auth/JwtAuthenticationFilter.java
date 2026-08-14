@@ -3,6 +3,7 @@ package com.gatewaydashboard.auth;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -13,6 +14,7 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter implements WebFilter {
@@ -32,7 +34,8 @@ public class JwtAuthenticationFilter implements WebFilter {
                 return chain.filter(exchange)
                         .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication));
             } catch (JwtException | IllegalArgumentException e) {
-                // 无效 token：不注入认证信息，受保护接口会返回 401
+                // 无效 token：不注入认证信息，受保护接口会返回 401；记录 DEBUG 便于排查异常流量
+                log.debug("无效 JWT（{}）: {}", exchange.getRequest().getPath(), e.getMessage());
             }
         }
         return chain.filter(exchange);

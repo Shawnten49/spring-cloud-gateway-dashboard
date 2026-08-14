@@ -1,20 +1,27 @@
 # 注意：本机没有 Docker 环境，此文件未在本机验证过，仅作为交付参考。
 # 使用方式：在 docker/ 目录执行 docker compose up -d --build
+#
+# 安全默认值（对应评审 P1-A）：
+# - MySQL 不再发布到宿主机（仅 compose 内部网络可达），杜绝"直连 DB 绕过应用鉴权"；
+#   如需本机调试可临时改为 "127.0.0.1:3306:3306"。
+# - JWT 密钥 / 数据库口令 / 内部 token 均从 .env 注入（见下方 environment），
+#   生产请用 docker secrets 或 vault 替换字面值。
 services:
   mysql:
     image: mysql:8.4
     container_name: gd-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
       MYSQL_DATABASE: gateway_dashboard
       MYSQL_USER: gateway
-      MYSQL_PASSWORD: gateway123
-    ports:
-      - "3306:3306"
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-gateway123}
+    # 不对外发布 3306；仅 backend 通过 compose 内部网络访问。
+    # ports:
+    #   - "127.0.0.1:3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ugateway", "-pgateway123"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ugateway", "-p${MYSQL_PASSWORD:-gateway123}"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -27,8 +34,9 @@ services:
       SPRING_PROFILES_ACTIVE: dev
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/gateway_dashboard?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: gateway
-      SPRING_DATASOURCE_PASSWORD: gateway123
-      JWT_SECRET: gateway-dashboard-compose-secret-change-me-0123456789
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-gateway123}
+      JWT_SECRET: ${JWT_SECRET:-gateway-dashboard-compose-secret-change-me-0123456789}
+      GD_INTERNAL_TOKEN: ${GD_INTERNAL_TOKEN:-gd-internal-token-dev}
     ports:
       - "8080:8080"
     depends_on:

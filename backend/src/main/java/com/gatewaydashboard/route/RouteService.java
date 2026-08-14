@@ -7,11 +7,12 @@ import com.gatewaydashboard.route.RouteDto.RouteRequest;
 import com.gatewaydashboard.route.RouteDto.RouteResponse;
 import com.gatewaydashboard.route.RouteDto.ValidationResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -46,7 +47,13 @@ public class RouteService {
             throw BusinessException.conflict("路由 ID 已存在: " + request.routeId());
         }
         RouteConfig entity = assembler.toEntity(request);
-        entity = repository.save(entity);
+        try {
+            entity = repository.save(entity);
+        } catch (DataIntegrityViolationException e) {
+            // 并发创建同一 routeId：existsByRouteId 检查与 save 之间存在竞态窗口，
+            // 唯一约束冲突应返回 409 而非 500。
+            throw BusinessException.conflict("路由 ID 已存在: " + request.routeId());
+        }
         auditService.record(actor, "CREATE", entity.getRouteId(), null, assembler.toJson(entity), ip);
         scheduleRefreshAfterCommit();
         return assembler.toResponse(entity);

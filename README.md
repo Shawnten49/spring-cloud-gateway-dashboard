@@ -43,7 +43,7 @@ gateway-dashboard:
 
 ## 技术栈
 
-- 后端：Java 21、Spring Boot 3.5.x、Spring Cloud 2025.0.x（Northfields）、Spring Cloud Gateway 4.3.x（WebFlux）、Spring Security + JWT、MyBatis-Plus 3.5.x（**全部 SQL 写在 `backend/src/main/resources/mapper/*.xml`**，见 docs/mybatis-plus迁移方案.md）、Flyway、MySQL 8（测试用 H2 MySQL 兼容模式）
+- 后端：Java 21、Spring Boot 3.5.x、Spring Cloud 2025.0.x（Northfields）、Spring Cloud Gateway 4.3.x（WebFlux）、Spring Security + JWT、MyBatis-Plus 3.5.x（**全部 SQL 写在 `backend/src/main/resources/mapper/*.xml`**，见 docs/proposals/mybatis-plus迁移方案.md）、Flyway、MySQL 8（测试用 H2 MySQL 兼容模式）
 - 前端：Vue 3 + Vite + TypeScript + Element Plus + Pinia + Vue Router + axios
 
 ## 快速开始
@@ -153,7 +153,7 @@ cd frontend && npm test         # 路由 JSON 工具 Vitest
 
 ## Maven 多模块构建（根主项目）
 
-根目录 `pom.xml` 为 Maven 主项目（聚合 backend / frontend / gateway-demo，版本统一管理，见 [docs/maven多模块方案.md](docs/maven多模块方案.md)）：
+根目录 `pom.xml` 为 Maven 主项目（聚合 backend / frontend / gateway-demo，版本统一管理，见 [docs/proposals/maven多模块方案.md](docs/proposals/maven多模块方案.md)）：
 
 ```bash
 mvn package          # 根目录一条命令构建全部：后端 jar + 网关 jar + 前端 dist

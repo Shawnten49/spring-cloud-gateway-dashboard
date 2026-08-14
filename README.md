@@ -137,6 +137,9 @@ mvn spring-boot:run            # http://localhost:8088，需 Nacos（127.0.0.1:8
 | POST | /api/permission-rules | 新增权限规则（即时生效） | ADMIN |
 | PUT | /api/permission-rules/{id} | 修改权限规则 | ADMIN |
 | DELETE | /api/permission-rules/{id} | 删除权限规则（内置规则不可删除） | ADMIN |
+| GET | /api/users?keyword= | 用户列表（不含密码哈希） | ADMIN |
+| POST | /api/users | 新增用户（用户名唯一、密码 ≥8 位、角色 ADMIN/VIEWER） | ADMIN |
+| PUT | /api/users/{id}/enabled | 屏蔽/启用用户（屏蔽即吊销其 token；**admin 不可屏蔽**；无删除接口） | ADMIN |
 
 统一响应体：`{ "code": 200, "message": "ok", "data": ... }`。
 

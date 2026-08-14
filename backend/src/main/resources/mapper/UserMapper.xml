@@ -43,4 +43,25 @@
         FROM sys_user
     </select>
 
+    <!-- 用户管理：列表（可选关键词按用户名模糊匹配），按 id 升序 -->
+    <select id="selectByKeyword" resultType="com.gatewaydashboard.auth.entity.User">
+        SELECT <include refid="BaseColumns"/>
+        FROM sys_user
+        <where>
+            <if test="keyword != null and keyword != ''">
+                LOWER(username) LIKE LOWER(CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY id ASC
+    </select>
+
+    <!-- 用户管理：屏蔽/启用 —— enabled 切换 + token_version 自增（吊销旧 token，S-04） -->
+    <update id="updateEnabledWithVersion">
+        UPDATE sys_user
+        SET enabled = #{enabled},
+            token_version = token_version + 1,
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
 </mapper>

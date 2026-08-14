@@ -5,6 +5,7 @@ import com.gatewaydashboard.auth.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -24,4 +25,12 @@ public interface UserMapper {
     long countByUsername(@Param("username") String username);
 
     List<User> selectAll();
+
+    /** 用户管理：按用户名关键词模糊搜索（可选），按 id 升序。 */
+    List<User> selectByKeyword(@Param("keyword") String keyword);
+
+    /** 用户管理：屏蔽/启用 —— enabled 切换 + token_version 自增（吊销旧 token，S-04）。 */
+    int updateEnabledWithVersion(@Param("id") Long id,
+                                 @Param("enabled") boolean enabled,
+                                 @Param("updatedAt") Instant updatedAt);
 }

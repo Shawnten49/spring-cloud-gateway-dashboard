@@ -3,14 +3,17 @@ spring:
     name: gateway-dashboard
   profiles:
     default: dev
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: none
   flyway:
     enabled: true
   jackson:
     default-property-inclusion: non_null
+
+# 数据访问：MyBatis-Plus，全部 SQL 位于 resources/mapper/*.xml（见 docs/mybatis-plus迁移方案.md）
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
 
 server:
   port: 8080

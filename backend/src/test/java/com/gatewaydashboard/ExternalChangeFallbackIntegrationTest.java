@@ -1,7 +1,8 @@
 package com.gatewaydashboard;
 
 import com.gatewaydashboard.refresh.EmbeddedGatewaySyncScheduler;
-import com.gatewaydashboard.route.ConfigRevisionRepository;
+import com.gatewaydashboard.route.ConfigRevision;
+import com.gatewaydashboard.route.ConfigRevisionMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -45,7 +46,7 @@ class ExternalChangeFallbackIntegrationTest {
     private EmbeddedGatewaySyncScheduler scheduler;
 
     @Autowired
-    private ConfigRevisionRepository revisionRepository;
+    private ConfigRevisionMapper revisionMapper;
 
     @Autowired
     private RefreshEventCounter counter;
@@ -54,11 +55,11 @@ class ExternalChangeFallbackIntegrationTest {
     void externalRevisionChangeIsPickedUpByPollingFallback() {
         // 记录当前已发布的刷新次数与修订号
         int before = counter.count.get();
-        long revisionBefore = revisionRepository.findById(1).orElseThrow().getRevision();
+        long revisionBefore = revisionMapper.selectById(1).getRevision();
 
         // 模拟他实例写入：绕过 RouteService 本地刷新路径，直接 bump 全局修订号
-        revisionRepository.bumpRevision();
-        assertTrue(revisionRepository.findById(1).orElseThrow().getRevision() > revisionBefore,
+        revisionMapper.bumpRevision();
+        assertTrue(revisionMapper.selectById(1).getRevision() > revisionBefore,
                 "外部写入应使修订号 +1");
 
         // 手动触发一次轮询（模拟调度器到点；调度器线程也可能已触发，二者都算兜底生效）

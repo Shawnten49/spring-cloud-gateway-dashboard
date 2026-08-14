@@ -3,11 +3,11 @@ package com.gatewaydashboard.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gatewaydashboard.auth.User;
 import com.gatewaydashboard.auth.UserAuthStateCache;
-import com.gatewaydashboard.auth.UserRepository;
-import com.gatewaydashboard.route.ConfigRevisionRepository;
+import com.gatewaydashboard.auth.UserMapper;
+import com.gatewaydashboard.route.ConfigRevisionMapper;
 import com.gatewaydashboard.route.RouteChangedEvent;
 import com.gatewaydashboard.route.RouteConfig;
-import com.gatewaydashboard.route.RouteConfigRepository;
+import com.gatewaydashboard.route.RouteConfigMapper;
 import com.gatewaydashboard.route.RouteDto.Step;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,10 +34,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SeedDataInitializer implements ApplicationRunner {
 
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final UserAuthStateCache userAuthStateCache;
-    private final RouteConfigRepository routeRepository;
-    private final ConfigRevisionRepository configRevisionRepository;
+    private final RouteConfigMapper routeConfigMapper;
+    private final ConfigRevisionMapper configRevisionMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
@@ -52,27 +52,29 @@ public class SeedDataInitializer implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         boolean seeded = false;
-        if (!userRepository.existsByUsername("admin")) {
-            User admin = userRepository.save(buildUser("admin", requireSeedPassword("admin", adminPassword), "ADMIN"));
+        if (userMapper.countByUsername("admin") == 0) {
+            User admin = buildUser("admin", requireSeedPassword("admin", adminPassword), "ADMIN");
+            userMapper.insert(admin);
             userAuthStateCache.update(admin.getUsername(), admin.getTokenVersion(), admin.isEnabled());
             seeded = true;
         }
-        if (!userRepository.existsByUsername("viewer")) {
-            User viewer = userRepository.save(buildUser("viewer", requireSeedPassword("viewer", viewerPassword), "VIEWER"));
+        if (userMapper.countByUsername("viewer") == 0) {
+            User viewer = buildUser("viewer", requireSeedPassword("viewer", viewerPassword), "VIEWER");
+            userMapper.insert(viewer);
             userAuthStateCache.update(viewer.getUsername(), viewer.getTokenVersion(), viewer.isEnabled());
             seeded = true;
         }
-        if (!routeRepository.existsByRouteId("httpbin-get")) {
-            routeRepository.save(buildRoute("httpbin-get", "http://httpbin.org", "/get"));
+        if (routeConfigMapper.countByRouteId("httpbin-get") == 0) {
+            routeConfigMapper.insert(buildRoute("httpbin-get", "http://httpbin.org", "/get"));
             seeded = true;
         }
-        if (!routeRepository.existsByRouteId("httpbin-anything")) {
-            routeRepository.save(buildRoute("httpbin-anything", "http://httpbin.org", "/anything"));
+        if (routeConfigMapper.countByRouteId("httpbin-anything") == 0) {
+            routeConfigMapper.insert(buildRoute("httpbin-anything", "http://httpbin.org", "/anything"));
             seeded = true;
         }
         if (seeded) {
             // 种子路由也走真源写路径：同一事务内递增全局修订号（F13）
-            configRevisionRepository.bumpRevision();
+            configRevisionMapper.bumpRevision();
             // 事务提交后再发布路由变更事件（刷新/推送由 refresh 包监听编排），
             // 保证生效路由重建读到已提交的种子数据
             if (TransactionSynchronizationManager.isSynchronizationActive()) {

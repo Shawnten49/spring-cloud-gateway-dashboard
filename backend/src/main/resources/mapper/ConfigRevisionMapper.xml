@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- config_revision 全部 SQL（人工维护） -->
+<mapper namespace="com.gatewaydashboard.route.ConfigRevisionMapper">
+
+    <select id="selectById" resultType="com.gatewaydashboard.route.ConfigRevision">
+        SELECT id, revision
+        FROM config_revision
+        WHERE id = #{id}
+    </select>
+
+    <!-- 原子自增：单行行锁串行化并发写；调用方须处于与路由写入相同的事务中 -->
+    <update id="bumpRevision">
+        UPDATE config_revision SET revision = revision + 1 WHERE id = 1
+    </update>
+
+</mapper>

@@ -1,6 +1,6 @@
 package com.gatewaydashboard;
 
-import com.gatewaydashboard.route.ConfigRevisionRepository;
+import com.gatewaydashboard.route.ConfigRevisionMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,7 +25,7 @@ class RevisionWatermarkIntegrationTest {
     private WebTestClient webTestClient;
 
     @Autowired
-    private ConfigRevisionRepository revisionRepository;
+    private ConfigRevisionMapper revisionMapper;
 
     @Test
     void revisionIncrementsOnEveryRouteWrite() {
@@ -94,9 +94,7 @@ class RevisionWatermarkIntegrationTest {
     }
 
     private long revision() {
-        return revisionRepository.findById(1)
-                .map(r -> r.getRevision())
-                .orElseThrow();
+        return revisionMapper.selectById(1).getRevision();
     }
 
     private String routeJson(String routeId, boolean enabled) {

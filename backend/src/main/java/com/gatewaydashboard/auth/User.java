@@ -1,54 +1,48 @@
 package com.gatewaydashboard.auth;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "sys_user")
+/**
+ * 用户实体（MyBatis-Plus；全部 SQL 见 resources/mapper/UserMapper.xml）。
+ * tokenVersion 为 S-04 吊销机制的版本号；created_at/updated_at 由 MetaObjectHandler 填充。
+ */
+@TableName("sys_user")
 @Getter
 @Setter
 @NoArgsConstructor
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 64)
     private String username;
 
-    @Column(name = "password_hash", nullable = false, length = 100)
+    @TableField("password_hash")
     private String passwordHash;
 
-    @Column(nullable = false, length = 16)
     private String role;
 
-    @Column(nullable = false)
     private boolean enabled = true;
 
     /**
      * 用户级 token 版本号（S-04 吊销机制）：改密/停用时 +1，
      * JWT 携带 ver claim，过滤器比对不一致即视为已吊销。
      */
-    @Column(name = "token_version", nullable = false)
+    @TableField("token_version")
     private long tokenVersion;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Instant createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Instant updatedAt;
 }

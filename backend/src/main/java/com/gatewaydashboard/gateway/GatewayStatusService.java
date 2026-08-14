@@ -4,7 +4,7 @@ import com.gatewaydashboard.common.BlockingSupport;
 import com.gatewaydashboard.gateway.GatewayStatusDtos.ExternalGatewayStatus;
 import com.gatewaydashboard.gateway.GatewayStatusDtos.GatewayStatusResponse;
 import com.gatewaydashboard.route.RouteAssembler;
-import com.gatewaydashboard.route.RouteConfigRepository;
+import com.gatewaydashboard.route.RouteConfigMapper;
 import com.gatewaydashboard.route.RouteDto.RouteResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,20 +31,20 @@ public class GatewayStatusService {
 
     private final RouteLocator cachedRouteLocator;
     private final RouteDefinitionLocator routeDefinitionLocator;
-    private final RouteConfigRepository routeConfigRepository;
+    private final RouteConfigMapper routeConfigMapper;
     private final RouteAssembler routeAssembler;
     private final RefreshTimestampListener refreshTimestampListener;
     private final ExternalGatewayStatusService externalGatewayStatusService;
 
     public GatewayStatusService(@Qualifier("cachedCompositeRouteLocator") RouteLocator cachedRouteLocator,
                                 @Qualifier("routeDefinitionLocator") RouteDefinitionLocator routeDefinitionLocator,
-                                RouteConfigRepository routeConfigRepository,
+                                RouteConfigMapper routeConfigMapper,
                                 RouteAssembler routeAssembler,
                                 RefreshTimestampListener refreshTimestampListener,
                                 ExternalGatewayStatusService externalGatewayStatusService) {
         this.cachedRouteLocator = cachedRouteLocator;
         this.routeDefinitionLocator = routeDefinitionLocator;
-        this.routeConfigRepository = routeConfigRepository;
+        this.routeConfigMapper = routeConfigMapper;
         this.routeAssembler = routeAssembler;
         this.refreshTimestampListener = refreshTimestampListener;
         this.externalGatewayStatusService = externalGatewayStatusService;
@@ -53,7 +53,7 @@ public class GatewayStatusService {
     public Mono<GatewayStatusResponse> status() {
         // 健康探针也是阻塞 JPA：卸到 boundedElastic，并记录失败原因而非静默吞掉。
         Mono<String> health = BlockingSupport.call(() -> {
-            routeConfigRepository.count();
+            routeConfigMapper.countAll();
             return "UP";
         }).onErrorResume(error -> {
             log.warn("网关健康检查失败（数据库不可用）: {}", error.getMessage());

@@ -24,16 +24,16 @@ public class UserAuthStateCache {
     private record UserState(long tokenVersion, boolean enabled) {
     }
 
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final ConcurrentHashMap<String, UserState> states = new ConcurrentHashMap<>();
 
-    public UserAuthStateCache(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public UserAuthStateCache(UserMapper userMapper) {
+        this.userMapper = userMapper;
     }
 
     @PostConstruct
     public void loadAll() {
-        for (User user : userRepository.findAll()) {
+        for (User user : userMapper.selectAll()) {
             states.put(user.getUsername(), new UserState(user.getTokenVersion(), user.isEnabled()));
         }
         log.info("用户认证状态缓存已加载: {} 个用户", states.size());

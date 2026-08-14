@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- audit_log 全部 SQL（人工维护） -->
+<mapper namespace="com.gatewaydashboard.audit.AuditLogMapper">
+
+    <sql id="BaseColumns">
+        id, actor_username, action, route_id, before_json, after_json, ip, created_at
+    </sql>
+
+    <insert id="insert" parameterType="com.gatewaydashboard.audit.AuditLog"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO audit_log (actor_username, action, route_id, before_json, after_json, ip, created_at)
+        VALUES (#{actorUsername}, #{action}, #{routeId}, #{beforeJson}, #{afterJson}, #{ip}, #{createdAt})
+    </insert>
+
+    <!-- 分页：IPage 参数由 PaginationInnerInterceptor 自动追加 LIMIT -->
+    <select id="selectPageOrdered" resultType="com.gatewaydashboard.audit.AuditLog">
+        SELECT <include refid="BaseColumns"/>
+        FROM audit_log
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

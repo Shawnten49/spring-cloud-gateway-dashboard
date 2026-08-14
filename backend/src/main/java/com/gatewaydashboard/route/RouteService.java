@@ -9,7 +9,6 @@ import com.gatewaydashboard.route.RouteDto.ValidationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -21,18 +20,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RouteService {
 
-    private final RouteConfigRepository repository;
+    private final RouteConfigMapper routeConfigMapper;
     private final RouteValidator validator;
     private final RouteAssembler assembler;
     private final AuditService auditService;
-    private final ConfigRevisionRepository configRevisionRepository;
+    private final ConfigRevisionMapper configRevisionMapper;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public List<RouteResponse> list(String keyword) {
         List<RouteConfig> routes = (keyword == null || keyword.isBlank())
-                ? repository.findAllByOrderByOrderNoAscIdAsc()
-                : repository.search(keyword.trim());
+                ? routeConfigMapper.selectAllOrdered()
+                : routeConfigMapper.searchByKeyword(keyword.trim());
         return routes.stream().map(assembler::toResponse).toList();
     }
 
@@ -44,15 +43,15 @@ public class RouteService {
     @Transactional
     public RouteResponse create(RouteRequest request, String actor, String ip) {
         ensureValid(request);
-        if (repository.existsByRouteId(request.routeId())) {
+        if (routeConfigMapper.countByRouteId(request.routeId()) > 0) {
             throw BusinessException.conflict("路由 ID 已存在: " + request.routeId());
         }
         RouteConfig entity = assembler.toEntity(request);
         try {
-            entity = repository.save(entity);
+            routeConfigMapper.insert(entity);
         } catch (DataIntegrityViolationException e) {
-            // 并发创建同一 routeId：existsByRouteId 检查与 save 之间存在竞态窗口，
-            // 唯一约束冲突应返回 409 而非 500。
+            // 并发创建同一 routeId：count 检查与 insert 之间存在竞态窗口，
+            // 唯一约束冲突应返回 409 而非 500（DuplicateKeyException 是其子类）。
             throw BusinessException.conflict("路由 ID 已存在: " + request.routeId());
         }
         auditService.record(actor, AuditAction.CREATE, entity.getRouteId(), null, assembler.toJson(entity), ip);
@@ -70,22 +69,22 @@ public class RouteService {
         ensureValid(request);
         String before = assembler.toJson(existing);
         assembler.applyRequest(existing, request);
-        RouteConfig saved;
-        try {
-            saved = repository.saveAndFlush(existing);
-        } catch (ObjectOptimisticLockingFailureException e) {
+        // 乐观锁（XML 手写 WHERE version=#{version}）：受影响行数 0 = 版本冲突
+        int updated = routeConfigMapper.updateByIdWithVersion(existing);
+        if (updated == 0) {
             throw BusinessException.conflict("该路由已被其他操作修改，请刷新后重试");
         }
-        auditService.record(actor, AuditAction.UPDATE, saved.getRouteId(), before, assembler.toJson(saved), ip);
+        existing.setVersion(existing.getVersion() + 1);
+        auditService.record(actor, AuditAction.UPDATE, existing.getRouteId(), before, assembler.toJson(existing), ip);
         bumpRevision();
         scheduleRefreshAfterCommit();
-        return assembler.toResponse(saved);
+        return assembler.toResponse(existing);
     }
 
     @Transactional
     public void delete(String routeId, String actor, String ip) {
         RouteConfig existing = find(routeId);
-        repository.delete(existing);
+        routeConfigMapper.deleteById(existing.getId());
         auditService.record(actor, AuditAction.DELETE, existing.getRouteId(), assembler.toJson(existing), null, ip);
         bumpRevision();
         scheduleRefreshAfterCommit();
@@ -102,11 +101,15 @@ public class RouteService {
         }
         String before = assembler.toJson(existing);
         existing.setEnabled(enabled);
-        RouteConfig saved = repository.saveAndFlush(existing);
-        auditService.record(actor, enabled ? AuditAction.ENABLE : AuditAction.DISABLE, saved.getRouteId(), before, assembler.toJson(saved), ip);
+        int updated = routeConfigMapper.updateByIdWithVersion(existing);
+        if (updated == 0) {
+            throw BusinessException.conflict("该路由已被其他操作修改，请刷新后重试");
+        }
+        existing.setVersion(existing.getVersion() + 1);
+        auditService.record(actor, enabled ? AuditAction.ENABLE : AuditAction.DISABLE, existing.getRouteId(), before, assembler.toJson(existing), ip);
         bumpRevision();
         scheduleRefreshAfterCommit();
-        return assembler.toResponse(saved);
+        return assembler.toResponse(existing);
     }
 
     /**
@@ -114,7 +117,7 @@ public class RouteService {
      * 内嵌网关轮询兜底（F5）与外部网关轮询（gateway-demo）据此感知任意写变更。
      */
     private void bumpRevision() {
-        configRevisionRepository.bumpRevision();
+        configRevisionMapper.bumpRevision();
     }
 
     /**
@@ -146,7 +149,10 @@ public class RouteService {
     }
 
     private RouteConfig find(String routeId) {
-        return repository.findByRouteId(routeId)
-                .orElseThrow(() -> BusinessException.notFound("路由不存在: " + routeId));
+        RouteConfig route = routeConfigMapper.selectByRouteId(routeId);
+        if (route == null) {
+            throw BusinessException.notFound("路由不存在: " + routeId);
+        }
+        return route;
     }
 }

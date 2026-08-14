@@ -1,12 +1,11 @@
 package com.gatewaydashboard.refresh;
 
 import com.gatewaydashboard.route.ConfigRevision;
-import com.gatewaydashboard.route.ConfigRevisionRepository;
+import com.gatewaydashboard.route.ConfigRevisionMapper;
 import com.gatewaydashboard.route.RouteRefreshService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -20,14 +19,14 @@ import static org.mockito.Mockito.when;
  */
 class EmbeddedGatewaySyncSchedulerTest {
 
-    private ConfigRevisionRepository repository;
+    private ConfigRevisionMapper repository;
     private RouteRefreshService refreshService;
 
     @BeforeEach
     void setUp() {
-        repository = mock(ConfigRevisionRepository.class);
+        repository = mock(ConfigRevisionMapper.class);
         refreshService = mock(RouteRefreshService.class);
-        when(repository.findById(1)).thenReturn(Optional.of(revision(5L)));
+        when(repository.selectById(1)).thenReturn(revision(5L));
     }
 
     private EmbeddedGatewaySyncScheduler scheduler(boolean enabled) {
@@ -46,7 +45,7 @@ class EmbeddedGatewaySyncSchedulerTest {
     @Test
     void revisionChangeTriggersRefreshExactlyOnce() {
         EmbeddedGatewaySyncScheduler scheduler = scheduler(true);
-        when(repository.findById(1)).thenReturn(Optional.of(revision(6L)));
+        when(repository.selectById(1)).thenReturn(revision(6L));
 
         scheduler.poll();
         scheduler.poll();
@@ -71,7 +70,7 @@ class EmbeddedGatewaySyncSchedulerTest {
         scheduler.poll();
         verify(refreshService, never()).refresh();
 
-        when(repository.findById(1)).thenReturn(Optional.of(revision(6L)));
+        when(repository.selectById(1)).thenReturn(revision(6L));
         scheduler.poll();
 
         verify(refreshService, times(1)).refresh();
@@ -80,7 +79,7 @@ class EmbeddedGatewaySyncSchedulerTest {
     @Test
     void disabledSchedulerDoesNotPoll() {
         EmbeddedGatewaySyncScheduler scheduler = scheduler(false);
-        when(repository.findById(1)).thenReturn(Optional.of(revision(6L)));
+        when(repository.selectById(1)).thenReturn(revision(6L));
 
         scheduler.poll();
 

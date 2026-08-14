@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- route_config 全部 SQL（人工维护）；列名 ↔ 实体字段由 map-underscore-to-camel-case 映射 -->
+<mapper namespace="com.gatewaydashboard.route.RouteConfigMapper">
+
+    <sql id="BaseColumns">
+        id, route_id, uri, order_no, enabled, predicates_json, filters_json, metadata_json, version, created_at, updated_at
+    </sql>
+
+    <select id="selectById" resultType="com.gatewaydashboard.route.RouteConfig">
+        SELECT <include refid="BaseColumns"/>
+        FROM route_config
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.gatewaydashboard.route.RouteConfig"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO route_config
+            (route_id, uri, order_no, enabled, predicates_json, filters_json, metadata_json, version, created_at, updated_at)
+        VALUES
+            (#{routeId}, #{uri}, #{orderNo}, #{enabled}, #{predicatesJson}, #{filtersJson}, #{metadataJson}, #{version}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <!-- 乐观锁更新：version 条件 + 自增同语句完成；受影响行数 0 = 版本冲突（Service 映射 409） -->
+    <update id="updateByIdWithVersion" parameterType="com.gatewaydashboard.route.RouteConfig">
+        UPDATE route_config
+        SET uri = #{uri},
+            order_no = #{orderNo},
+            enabled = #{enabled},
+            predicates_json = #{predicatesJson},
+            filters_json = #{filtersJson},
+            metadata_json = #{metadataJson},
+            version = version + 1,
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND version = #{version}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM route_config WHERE id = #{id}
+    </delete>
+
+    <select id="selectByRouteId" resultType="com.gatewaydashboard.route.RouteConfig">
+        SELECT <include refid="BaseColumns"/>
+        FROM route_config
+        WHERE route_id = #{routeId}
+    </select>
+
+    <select id="countByRouteId" resultType="long">
+        SELECT COUNT(1) FROM route_config WHERE route_id = #{routeId}
+    </select>
+
+    <select id="selectAllOrdered" resultType="com.gatewaydashboard.route.RouteConfig">
+        SELECT <include refid="BaseColumns"/>
+        FROM route_config
+        ORDER BY order_no ASC, id ASC
+    </select>
+
+    <select id="selectEnabledOrdered" resultType="com.gatewaydashboard.route.RouteConfig">
+        SELECT <include refid="BaseColumns"/>
+        FROM route_config
+        WHERE enabled = TRUE
+        ORDER BY order_no ASC, id ASC
+    </select>
+
+    <select id="searchByKeyword" resultType="com.gatewaydashboard.route.RouteConfig">
+        SELECT <include refid="BaseColumns"/>
+        FROM route_config
+        WHERE LOWER(route_id) LIKE LOWER(CONCAT('%', #{keyword}, '%'))
+           OR LOWER(uri) LIKE LOWER(CONCAT('%', #{keyword}, '%'))
+        ORDER BY order_no ASC, id ASC
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(1) FROM route_config
+    </select>
+
+</mapper>

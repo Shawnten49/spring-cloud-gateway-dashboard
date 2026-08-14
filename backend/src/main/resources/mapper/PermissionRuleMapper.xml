@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- permission_rule 全部 SQL（人工维护） -->
+<mapper namespace="com.gatewaydashboard.permission.PermissionRuleMapper">
+
+    <sql id="BaseColumns">
+        id, name, http_method, path_pattern, roles, priority, enabled, builtin, created_at, updated_at
+    </sql>
+
+    <select id="selectById" resultType="com.gatewaydashboard.permission.PermissionRule">
+        SELECT <include refid="BaseColumns"/>
+        FROM permission_rule
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.gatewaydashboard.permission.PermissionRule"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO permission_rule (name, http_method, path_pattern, roles, priority, enabled, builtin, created_at, updated_at)
+        VALUES (#{name}, #{httpMethod}, #{pathPattern}, #{roles}, #{priority}, #{enabled}, #{builtin}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <!-- builtin 不可修改由 Service 层拦截；此处仅更新规则字段 -->
+    <update id="updateById" parameterType="com.gatewaydashboard.permission.PermissionRule">
+        UPDATE permission_rule
+        SET name = #{name},
+            http_method = #{httpMethod},
+            path_pattern = #{pathPattern},
+            roles = #{roles},
+            priority = #{priority},
+            enabled = #{enabled},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM permission_rule WHERE id = #{id}
+    </delete>
+
+    <select id="selectAllOrdered" resultType="com.gatewaydashboard.permission.PermissionRule">
+        SELECT <include refid="BaseColumns"/>
+        FROM permission_rule
+        ORDER BY priority ASC, id ASC
+    </select>
+
+    <select id="selectAll" resultType="com.gatewaydashboard.permission.PermissionRule">
+        SELECT <include refid="BaseColumns"/>
+        FROM permission_rule
+    </select>
+
+</mapper>

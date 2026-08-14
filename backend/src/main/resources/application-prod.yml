@@ -14,11 +14,11 @@
 #   由网关侧轮询兜底，路由最多延迟一个轮询周期生效。
 # - 本文件不配置 spring.datasource：请在环境变量中提供（见 README「配置项」）。
 
-spring:
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: none
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
 
 management:
   endpoints:

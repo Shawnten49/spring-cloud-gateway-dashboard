@@ -25,7 +25,7 @@ class DbRouteDefinitionLocatorTest {
     private DbRouteDefinitionLocator locator;
 
     @Autowired
-    private RouteConfigRepository repository;
+    private RouteConfigMapper routeConfigMapper;
 
     @Test
     void corruptRouteRowIsSkippedButValidRoutesStillLoad() {
@@ -50,7 +50,8 @@ class DbRouteDefinitionLocatorTest {
         corrupt.setFiltersJson("[]");
         corrupt.setMetadataJson("{}");
 
-        repository.saveAll(List.of(valid, corrupt));
+        routeConfigMapper.insert(valid);
+        routeConfigMapper.insert(corrupt);
         try {
             List<RouteDefinition> definitions = Flux.from(locator.getRouteDefinitions())
                     .collectList()
@@ -61,7 +62,8 @@ class DbRouteDefinitionLocatorTest {
             assertTrue(definitions != null && definitions.stream().noneMatch(d -> d.getId().equals(corruptId)),
                     "损坏行应被跳过，而不是让整个 Flux 失败");
         } finally {
-            repository.deleteAll(List.of(valid, corrupt));
+            routeConfigMapper.deleteById(valid.getId());
+            routeConfigMapper.deleteById(corrupt.getId());
         }
     }
 }

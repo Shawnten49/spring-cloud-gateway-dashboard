@@ -47,11 +47,11 @@ public class PermissionRuleService {
             "/api/permission-rules/__guard__"
     };
 
-    private final PermissionRuleRepository repository;
+    private final PermissionRuleMapper permissionRuleMapper;
     private final AtomicReference<List<CachedRule>> rules = new AtomicReference<>(List.of());
 
-    public PermissionRuleService(PermissionRuleRepository repository) {
-        this.repository = repository;
+    public PermissionRuleService(PermissionRuleMapper permissionRuleMapper) {
+        this.permissionRuleMapper = permissionRuleMapper;
     }
 
     @PostConstruct
@@ -61,7 +61,7 @@ public class PermissionRuleService {
 
     @Transactional(readOnly = true)
     public List<RuleResponse> list() {
-        return repository.findAllByOrderByPriorityAscIdAsc().stream()
+        return permissionRuleMapper.selectAllOrdered().stream()
                 .map(RuleResponse::from)
                 .toList();
     }
@@ -72,10 +72,11 @@ public class PermissionRuleService {
         PermissionRule rule = new PermissionRule();
         apply(rule, request);
         rule.setBuiltin(false);
-        List<PermissionRule> rulesAfter = new ArrayList<>(repository.findAll());
+        List<PermissionRule> rulesAfter = new ArrayList<>(permissionRuleMapper.selectAll());
         rulesAfter.add(rule);
         guardAdminSelfAccess(rulesAfter);
-        PermissionRule saved = repository.save(rule);
+        permissionRuleMapper.insert(rule);
+        PermissionRule saved = rule;
         reloadAfterCommit();
         log.info("新增权限规则: {} {} {} -> {}", saved.getHttpMethod(), saved.getPathPattern(), saved.getRoles(), saved.getPriority());
         return RuleResponse.from(saved);
@@ -90,10 +91,11 @@ public class PermissionRuleService {
         }
         validateRequest(request);
         apply(rule, request);
-        List<PermissionRule> rulesAfter = new ArrayList<>(repository.findAll());
+        List<PermissionRule> rulesAfter = new ArrayList<>(permissionRuleMapper.selectAll());
         rulesAfter.replaceAll(r -> r.getId().equals(id) ? rule : r);
         guardAdminSelfAccess(rulesAfter);
-        PermissionRule saved = repository.saveAndFlush(rule);
+        permissionRuleMapper.updateById(rule);
+        PermissionRule saved = rule;
         reloadAfterCommit();
         log.info("更新权限规则 #{}: {} {} {} -> {}", saved.getId(), saved.getHttpMethod(), saved.getPathPattern(), saved.getRoles(), saved.getPriority());
         return RuleResponse.from(saved);
@@ -105,10 +107,10 @@ public class PermissionRuleService {
         if (rule.isBuiltin()) {
             throw BusinessException.badRequest("内置规则不可删除");
         }
-        List<PermissionRule> rulesAfter = new ArrayList<>(repository.findAll());
+        List<PermissionRule> rulesAfter = new ArrayList<>(permissionRuleMapper.selectAll());
         rulesAfter.removeIf(r -> r.getId().equals(id));
         guardAdminSelfAccess(rulesAfter);
-        repository.delete(rule);
+        permissionRuleMapper.deleteById(rule.getId());
         reloadAfterCommit();
         log.info("删除权限规则 #{}: {} {}", id, rule.getHttpMethod(), rule.getPathPattern());
     }
@@ -119,7 +121,7 @@ public class PermissionRuleService {
      * 避免提交前更新缓存、事务回滚后缓存与库不一致。
      */
     public void reload() {
-        List<CachedRule> cached = repository.findAllByOrderByPriorityAscIdAsc().stream()
+        List<CachedRule> cached = permissionRuleMapper.selectAllOrdered().stream()
                 .filter(PermissionRule::isEnabled)
                 .map(CachedRule::from)
                 .toList();
@@ -212,8 +214,11 @@ public class PermissionRuleService {
     }
 
     private PermissionRule find(Long id) {
-        return repository.findById(id)
-                .orElseThrow(() -> BusinessException.notFound("权限规则不存在: " + id));
+        PermissionRule rule = permissionRuleMapper.selectById(id);
+        if (rule == null) {
+            throw BusinessException.notFound("权限规则不存在: " + id);
+        }
+        return rule;
     }
 
     private void apply(PermissionRule rule, RuleRequest request) {

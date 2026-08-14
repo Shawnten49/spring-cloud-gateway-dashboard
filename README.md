@@ -43,7 +43,7 @@ gateway-dashboard:
 
 ## 技术栈
 
-- 后端：Java 21、Spring Boot 3.5.x、Spring Cloud 2025.0.x（Northfields）、Spring Cloud Gateway 4.3.x（WebFlux）、Spring Security + JWT、Spring Data JPA、Flyway、MySQL 8（测试用 H2 MySQL 兼容模式）
+- 后端：Java 21、Spring Boot 3.5.x、Spring Cloud 2025.0.x（Northfields）、Spring Cloud Gateway 4.3.x（WebFlux）、Spring Security + JWT、MyBatis-Plus 3.5.x（**全部 SQL 写在 `backend/src/main/resources/mapper/*.xml`**，见 docs/mybatis-plus迁移方案.md）、Flyway、MySQL 8（测试用 H2 MySQL 兼容模式）
 - 前端：Vue 3 + Vite + TypeScript + Element Plus + Pinia + Vue Router + axios
 
 ## 快速开始

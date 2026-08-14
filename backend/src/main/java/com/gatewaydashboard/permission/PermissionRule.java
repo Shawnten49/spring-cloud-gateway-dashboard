@@ -1,56 +1,48 @@
 package com.gatewaydashboard.permission;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "permission_rule")
+/**
+ * 接口权限规则实体（MyBatis-Plus；全部 SQL 见 resources/mapper/PermissionRuleMapper.xml）。
+ * created_at/updated_at 由 MetaObjectHandler 填充。
+ */
+@TableName("permission_rule")
 @Getter
 @Setter
 @NoArgsConstructor
 public class PermissionRule {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(nullable = false, length = 128)
     private String name;
 
-    @Column(name = "http_method", nullable = false, length = 16)
+    @TableField("http_method")
     private String httpMethod;
 
-    @Column(name = "path_pattern", nullable = false, length = 256)
+    @TableField("path_pattern")
     private String pathPattern;
 
-    @Column(nullable = false, length = 256)
     private String roles;
 
-    @Column(nullable = false)
     private int priority;
 
-    @Column(nullable = false)
     private boolean enabled = true;
 
-    @Column(nullable = false)
     private boolean builtin = false;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Instant createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Instant updatedAt;
 }

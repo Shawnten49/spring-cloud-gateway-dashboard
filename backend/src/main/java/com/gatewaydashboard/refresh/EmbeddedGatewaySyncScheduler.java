@@ -1,7 +1,7 @@
 package com.gatewaydashboard.refresh;
 
 import com.gatewaydashboard.route.ConfigRevision;
-import com.gatewaydashboard.route.ConfigRevisionRepository;
+import com.gatewaydashboard.route.ConfigRevisionMapper;
 import com.gatewaydashboard.route.RouteRefreshService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,17 +23,17 @@ import jakarta.annotation.PostConstruct;
 @Component
 public class EmbeddedGatewaySyncScheduler {
 
-    private final ConfigRevisionRepository configRevisionRepository;
+    private final ConfigRevisionMapper configRevisionMapper;
     private final RouteRefreshService refreshService;
     private final boolean enabled;
 
     private volatile long lastSeenRevision = -1;
     private volatile long lastRefreshedRevision = -1;
 
-    public EmbeddedGatewaySyncScheduler(ConfigRevisionRepository configRevisionRepository,
+    public EmbeddedGatewaySyncScheduler(ConfigRevisionMapper configRevisionMapper,
                                         RouteRefreshService refreshService,
                                         @Value("${gateway-dashboard.route-sync.enabled:true}") boolean enabled) {
-        this.configRevisionRepository = configRevisionRepository;
+        this.configRevisionMapper = configRevisionMapper;
         this.refreshService = refreshService;
         this.enabled = enabled;
     }
@@ -77,9 +77,8 @@ public class EmbeddedGatewaySyncScheduler {
 
     private long currentRevision() {
         try {
-            return configRevisionRepository.findById(1)
-                    .map(ConfigRevision::getRevision)
-                    .orElse(-1L);
+            ConfigRevision revision = configRevisionMapper.selectById(1);
+            return revision == null ? -1L : revision.getRevision();
         } catch (Exception e) {
             log.warn("读取路由配置修订号失败: {}", e.getMessage());
             return -1L;

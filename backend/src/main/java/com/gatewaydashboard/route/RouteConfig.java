@@ -1,61 +1,55 @@
 package com.gatewaydashboard.route;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Version;
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "route_config")
+/**
+ * 路由配置实体（MyBatis-Plus；全部 SQL 见 resources/mapper/RouteConfigMapper.xml）。
+ * version 为乐观锁字段：updateById XML 中手写 WHERE version = #{version}，冲突返回 0 行 → 409。
+ * created_at/updated_at 由 MetaObjectHandler 填充。
+ */
+@TableName("route_config")
 @Getter
 @Setter
 @NoArgsConstructor
 public class RouteConfig {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "route_id", nullable = false, unique = true, length = 128)
+    @TableField("route_id")
     private String routeId;
 
-    @Column(nullable = false, length = 512)
     private String uri;
 
-    @Column(name = "order_no", nullable = false)
+    @TableField("order_no")
     private int orderNo;
 
-    @Column(nullable = false)
     private boolean enabled = true;
 
-    @Column(name = "predicates_json", nullable = false, length = 5000)
+    @TableField("predicates_json")
     private String predicatesJson;
 
-    @Column(name = "filters_json", nullable = false, length = 5000)
+    @TableField("filters_json")
     private String filtersJson;
 
-    @Column(name = "metadata_json", nullable = false, length = 5000)
+    @TableField("metadata_json")
     private String metadataJson;
 
-    @Version
-    @Column(nullable = false)
+    /** 乐观锁版本号（XML 手写 WHERE version=#{version}，非 MP @Version 插件）。 */
     private long version;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Instant createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Instant updatedAt;
 }

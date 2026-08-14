@@ -1,22 +1,22 @@
 package com.gatewaydashboard.audit;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "audit_log")
+/**
+ * 操作审计实体（MyBatis-Plus；全部 SQL 见 resources/mapper/AuditLogMapper.xml）。
+ * action 为 AuditAction 枚举，按 name 存库（全局 EnumTypeHandler，存量数据无需迁移）。
+ * created_at 由 MetaObjectHandler 填充。
+ */
+@TableName("audit_log")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,30 +25,25 @@ public class AuditLog {
     /** before_json / after_json 列宽，也是快照入库前的截断上限（单一事实源，见 AuditService.truncate）。 */
     public static final int JSON_COLUMN_LENGTH = 5000;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "actor_username", nullable = false, length = 64)
+    @TableField("actor_username")
     private String actorUsername;
 
-    @Column(nullable = false, length = 16)
-    @Enumerated(EnumType.STRING)
     private AuditAction action;
 
-    @Column(name = "route_id", length = 128)
+    @TableField("route_id")
     private String routeId;
 
-    @Column(name = "before_json", length = JSON_COLUMN_LENGTH)
+    @TableField("before_json")
     private String beforeJson;
 
-    @Column(name = "after_json", length = JSON_COLUMN_LENGTH)
+    @TableField("after_json")
     private String afterJson;
 
-    @Column(length = 64)
     private String ip;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Instant createdAt;
 }

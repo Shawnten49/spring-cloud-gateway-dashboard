@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final UserAuthStateCache userAuthStateCache;
@@ -27,8 +27,10 @@ public class AuthService {
         if (!loginRateLimiter.tryConsume(clientIp == null ? "unknown" : clientIp)) {
             throw BusinessException.tooManyRequests("登录尝试过于频繁，请稍后再试");
         }
-        User user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> BusinessException.unauthorized("用户名或密码错误"));
+        User user = userMapper.selectByUsername(request.username());
+        if (user == null) {
+            throw BusinessException.unauthorized("用户名或密码错误");
+        }
         if (!user.isEnabled()) {
             throw BusinessException.unauthorized("账号已停用");
         }
@@ -43,22 +45,26 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public UserSummary me(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> BusinessException.unauthorized("用户不存在"));
+        User user = userMapper.selectByUsername(username);
+        if (user == null) {
+            throw BusinessException.unauthorized("用户不存在");
+        }
         return UserSummary.from(user);
     }
 
     @Transactional
     public void changePassword(String username, ChangePasswordRequest request) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> BusinessException.notFound("用户不存在"));
+        User user = userMapper.selectByUsername(username);
+        if (user == null) {
+            throw BusinessException.notFound("用户不存在");
+        }
         if (!passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
             throw BusinessException.badRequest("原密码错误");
         }
         // S-04 吊销：改密即吊销该用户此前签发的全部 token（JWT ver 不再匹配）
         user.setTokenVersion(user.getTokenVersion() + 1);
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
-        userRepository.save(user);
+        userMapper.updateById(user);
         userAuthStateCache.update(user.getUsername(), user.getTokenVersion(), user.isEnabled());
     }
 }

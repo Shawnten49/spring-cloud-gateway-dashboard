@@ -4,7 +4,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { routesApi } from '@/api/routes'
 import { metaApi } from '@/api/meta'
 import { useAuthStore } from '@/stores/auth'
-import type { RouteConfig } from '@/types'
+import type { RouteConfig, Step } from '@/types'
 import RouteEditorDrawer from '@/components/RouteEditorDrawer.vue'
 
 const auth = useAuthStore()
@@ -68,8 +68,9 @@ async function removeRoute(route: RouteConfig) {
   }
 }
 
-function stepSummary(steps: { name: string }[]): string {
-  return steps.map((s) => s.name).join(', ') || '-'
+/** Predicates/Filters 完整 JSON 串（如 [{"name":"Path","args":{"patterns":"/api/user/**"}}]）；空数组显示 - */
+function stepsJson(steps: Step[]): string {
+  return steps.length ? JSON.stringify(steps) : '-'
 }
 
 function formatTime(value: string): string {
@@ -95,11 +96,21 @@ onMounted(() => {
     <el-table v-loading="loading" :data="routes" border stripe>
       <el-table-column prop="routeId" label="路由 ID" min-width="180" />
       <el-table-column prop="uri" label="目标地址" min-width="220" show-overflow-tooltip />
-      <el-table-column label="Predicates" min-width="180" show-overflow-tooltip>
-        <template #default="{ row }">{{ stepSummary(row.predicates) }}</template>
+      <el-table-column label="Predicates" min-width="200">
+        <template #default="{ row }">
+          <el-tooltip v-if="stepsJson(row.predicates) !== '-'" placement="top" popper-class="json-tooltip" :show-after="300" :content="stepsJson(row.predicates)">
+            <span class="cell-ellipsis">{{ stepsJson(row.predicates) }}</span>
+          </el-tooltip>
+          <span v-else>-</span>
+        </template>
       </el-table-column>
-      <el-table-column label="Filters" min-width="160" show-overflow-tooltip>
-        <template #default="{ row }">{{ stepSummary(row.filters) }}</template>
+      <el-table-column label="Filters" min-width="180">
+        <template #default="{ row }">
+          <el-tooltip v-if="stepsJson(row.filters) !== '-'" placement="top" popper-class="json-tooltip" :show-after="300" :content="stepsJson(row.filters)">
+            <span class="cell-ellipsis">{{ stepsJson(row.filters) }}</span>
+          </el-tooltip>
+          <span v-else>-</span>
+        </template>
       </el-table-column>
       <el-table-column prop="order" label="顺序" width="70" />
       <el-table-column label="状态" width="90">

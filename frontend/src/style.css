@@ -46,3 +46,21 @@ body,
   justify-content: space-between;
   margin-bottom: 14px;
 }
+
+/* Predicates/Filters 悬浮框（挂载在 body 下）：展示完整 JSON 串，等宽字体、可换行、限宽 */
+.json-tooltip {
+  max-width: 520px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: SFMono-Regular, Consolas, Menlo, monospace;
+  font-size: 12px;
+}
+
+/* 表格单元格超长省略（配合 el-tooltip 悬浮展示完整内容） */
+.cell-ellipsis {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

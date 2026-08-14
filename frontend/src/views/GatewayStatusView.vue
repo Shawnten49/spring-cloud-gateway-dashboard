@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { gatewayApi } from '@/api/gateway'
-import type { GatewayStatus } from '@/types'
+import type { GatewayStatus, Step } from '@/types'
 
 const status = ref<GatewayStatus | null>(null)
 const loading = ref(false)
@@ -19,12 +19,9 @@ function formatTime(value: string | null): string {
   return value ? new Date(value).toLocaleString() : '-'
 }
 
-function predicateNames(row: { predicates: { name: string }[] }): string {
-  return row.predicates.map((p) => p.name).join(', ') || '-'
-}
-
-function filterNames(row: { filters: { name: string }[] }): string {
-  return row.filters.map((f) => f.name).join(', ') || '-'
+/** Predicates/Filters 完整 JSON 串（如 [{"name":"Path","args":{"patterns":"/api/user/**"}}]）；空数组显示 - */
+function stepsJson(steps: Step[]): string {
+  return steps.length ? JSON.stringify(steps) : '-'
 }
 
 onMounted(load)
@@ -46,11 +43,21 @@ onMounted(load)
     <el-table v-loading="loading" :data="status?.effectiveRoutes ?? []" border stripe>
       <el-table-column prop="routeId" label="路由 ID" min-width="180" />
       <el-table-column prop="uri" label="目标地址" min-width="220" show-overflow-tooltip />
-      <el-table-column label="Predicates" min-width="180" show-overflow-tooltip>
-        <template #default="{ row }">{{ predicateNames(row) }}</template>
+      <el-table-column label="Predicates" min-width="200">
+        <template #default="{ row }">
+          <el-tooltip v-if="stepsJson(row.predicates) !== '-'" placement="top" popper-class="json-tooltip" :show-after="300" :content="stepsJson(row.predicates)">
+            <span class="cell-ellipsis">{{ stepsJson(row.predicates) }}</span>
+          </el-tooltip>
+          <span v-else>-</span>
+        </template>
       </el-table-column>
-      <el-table-column label="Filters" min-width="160" show-overflow-tooltip>
-        <template #default="{ row }">{{ filterNames(row) }}</template>
+      <el-table-column label="Filters" min-width="180">
+        <template #default="{ row }">
+          <el-tooltip v-if="stepsJson(row.filters) !== '-'" placement="top" popper-class="json-tooltip" :show-after="300" :content="stepsJson(row.filters)">
+            <span class="cell-ellipsis">{{ stepsJson(row.filters) }}</span>
+          </el-tooltip>
+          <span v-else>-</span>
+        </template>
       </el-table-column>
       <el-table-column prop="order" label="顺序" width="70" />
       <template #empty>暂无生效路由</template>
@@ -116,4 +123,5 @@ onMounted(load)
 .gw-card {
   margin-bottom: 14px;
 }
+/* .cell-ellipsis 与 .json-tooltip 为全局样式（src/style.css），两处表格共用 */
 </style>

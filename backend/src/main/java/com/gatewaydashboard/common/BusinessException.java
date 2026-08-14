@@ -30,4 +30,8 @@ public class BusinessException extends RuntimeException {
     public static BusinessException conflict(String message) {
         return new BusinessException(HttpStatus.CONFLICT, message);
     }
+
+    public static BusinessException tooManyRequests(String message) {
+        return new BusinessException(HttpStatus.TOO_MANY_REQUESTS, message);
+    }
 }

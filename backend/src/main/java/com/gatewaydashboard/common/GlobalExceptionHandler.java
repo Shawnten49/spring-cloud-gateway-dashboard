@@ -62,7 +62,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiResponse<Void>> handleResponseStatus(ResponseStatusException e) {
         int status = e.getStatusCode().value();
-        String message = e.getReason() == null || e.getReason().isBlank() ? "请求处理失败" : e.getReason();
+        String message = switch (status) {
+            // 未匹配路径（如 "No static resource ..."）统一为友好文案，避免泄漏框架内部信息
+            case 404 -> "接口不存在";
+            default -> e.getReason() == null || e.getReason().isBlank() ? "请求处理失败" : e.getReason();
+        };
         return ResponseEntity.status(status).body(ApiResponse.fail(status, message));
     }
 

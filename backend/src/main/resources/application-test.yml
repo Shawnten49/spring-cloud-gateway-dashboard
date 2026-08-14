@@ -10,3 +10,9 @@ gateway-dashboard:
   external-gateways:
     - base-url: http://localhost:19999
       token: test-token
+  security:
+    login-rate-limit:
+      # 集成测试共享同一上下文与 127.0.0.1，登录次数多：放宽限流避免误伤；
+      # 限流本身的回归测试用独立上下文（@TestPropertySource）覆盖为小容量
+      capacity: 100000
+      refill-per-minute: 100000

@@ -12,7 +12,7 @@ public final class AuthDtos {
     }
 
     public record ChangePasswordRequest(@NotBlank String oldPassword,
-                                        @NotBlank @Size(min = 6, message = "新密码长度至少 6 位") String newPassword) {
+                                        @NotBlank @Size(min = 8, message = "新密码长度至少 8 位") String newPassword) {
     }
 
     public record UserSummary(String username, String role) {

@@ -30,8 +30,8 @@ async function submitPassword() {
     ElMessage.warning('请填写完整')
     return
   }
-  if (passwordForm.newPassword.length < 6) {
-    ElMessage.warning('新密码长度至少 6 位')
+  if (passwordForm.newPassword.length < 8) {
+    ElMessage.warning('新密码长度至少 8 位')
     return
   }
   if (passwordForm.newPassword !== passwordForm.confirm) {

@@ -41,6 +41,24 @@ class SecurityAuditRegressionTest {
     }
 
     @Test
+    void newPasswordShorterThan8Rejected() {
+        String adminToken = login("admin", "admin123");
+
+        // 密码最短 8 位（Phase 2 优化 2.3）：7 位新密码直接 400，不改动账号状态
+        webTestClient.put().uri("/api/auth/password")
+                .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"oldPassword\":\"admin123\",\"newPassword\":\"short7x\"}")
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody()
+                .jsonPath("$.code").isEqualTo(400);
+
+        // 账号未被改动：原密码仍可登录
+        login("admin", "admin123");
+    }
+
+    @Test
     void permissionGuardCoversAllWriteMethods() {
         String adminToken = login("admin", "admin123");
 

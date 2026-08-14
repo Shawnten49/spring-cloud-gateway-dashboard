@@ -32,6 +32,11 @@ gateway-dashboard:
     viewer-password: ${GD_VIEWER_PASSWORD:viewer123}
   cors:
     allowed-origins: ${GD_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  security:
+    login-rate-limit:
+      # 登录限流（Bucket4j 令牌桶，按客户端 IP）：容量 + 每分钟补充数
+      capacity: ${GD_LOGIN_RATE_CAPACITY:10}
+      refill-per-minute: ${GD_LOGIN_RATE_REFILL:10}
   external-gateways:
     # 外部网关实例（需集成 DbRouteDefinitionLocator + /internal/routes/refresh）：
     # 仪表盘保存路由后会向这些网关推送刷新；网关侧另有轮询兜底。

@@ -148,6 +148,17 @@ cd gateway-demo && mvn test     # 9 个用例：内部接口 token fail-closed +
 cd frontend && npm test         # 路由 JSON 工具 Vitest
 ```
 
+## Maven 多模块构建（根主项目）
+
+根目录 `pom.xml` 为 Maven 主项目（聚合 backend / frontend / gateway-demo，版本统一管理，见 [docs/maven多模块方案.md](docs/maven多模块方案.md)）：
+
+```bash
+mvn package          # 根目录一条命令构建全部：后端 jar + 网关 jar + 前端 dist
+mvn verify           # 全量测试 + 打包（含后端 JaCoCo 覆盖率门槛）
+mvn -pl backend test # 仅后端（-am 连带父 pom）
+cd backend && mvn test   # 子目录独立构建仍可用（父 pom 经 relativePath 解析）
+```
+
 ## Docker（交付参考，未在本机验证）
 
 `docker/` 提供 MySQL 8.4 + 后端 + 前端（Nginx）的编排文件与 Dockerfile：
@@ -161,9 +172,10 @@ docker compose up -d --build    # 前端 http://localhost:8088，后端 http://l
 
 ```text
 .
-├── backend/          # Spring Boot 后端（Gateway + 管理 API）
+├── pom.xml           # Maven 主项目（聚合 backend/frontend/gateway-demo，版本统一管理）
+├── backend/          # Spring Boot 后端（Gateway + 管理 API，MyBatis-Plus + XML SQL）
 ├── gateway-demo/     # 独立部署形态的演示网关（数据库路由源，端口 8088）
-├── frontend/         # Vue 3 前端
+├── frontend/         # Vue 3 前端（含 Maven 包装模块，mvn 可触发 npm 构建）
 ├── docker/           # Docker 交付物（未验证）
 ├── docs/adr/         # 架构决策记录
 └── CONTEXT.md        # 领域词汇表

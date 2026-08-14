@@ -2,28 +2,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.16</version>
-        <relativePath/>
+        <groupId>com.gatewaydashboard</groupId>
+        <artifactId>gateway-dashboard</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <groupId>com.example</groupId>
     <artifactId>gateway-demo</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>gateway-demo</name>
     <description>Gateway demo：数据库为路由真源，接入 Gateway Dashboard 动态管理</description>
-    <properties>
-        <java.version>21</java.version>
-    </properties>
+    <!-- spring-cloud 版本由根主项目统一管理（2025.0.3）；nacos 仅本演示工程使用，BOM 保留在此 -->
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>2025.0.0</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
                 <artifactId>spring-cloud-alibaba-dependencies</artifactId>

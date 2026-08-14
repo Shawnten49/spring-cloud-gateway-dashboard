@@ -81,14 +81,24 @@ public class RouteAssembler {
      * 只展示路由级信息；predicate/filter 细节在运行态不可还原为结构化 Step，置空。
      */
     public RouteResponse toResponse(Route route) {
+        return toResponse(route, null);
+    }
+
+    /**
+     * 网关"生效路由"视图（含结构化断言/过滤器）：
+     * 生效集合取自 CachingRouteLocator 的 Route，predicates/filters 内容按 routeId
+     * 从路由定义（真源）匹配填充——运行态 Route 只保留解析后的谓词闭包，无法还原结构化 Step。
+     * definition 缺失（防御：理论不可达）时 predicates/filters 置空。
+     */
+    public RouteResponse toResponse(Route route, RouteDefinition definition) {
         return new RouteResponse(
                 route.getId(),
                 route.getUri() == null ? "" : route.getUri().toString(),
                 route.getOrder(),
                 true,
-                List.of(),
-                List.of(),
-                route.getMetadata(),
+                definition == null ? List.of() : toSteps(definition.getPredicates()),
+                definition == null ? List.of() : toSteps(definition.getFilters()),
+                definition == null ? route.getMetadata() : definition.getMetadata(),
                 0,
                 null);
     }

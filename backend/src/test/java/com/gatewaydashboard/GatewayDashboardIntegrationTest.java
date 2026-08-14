@@ -78,14 +78,17 @@ class GatewayDashboardIntegrationTest {
                 .expectBody()
                 .jsonPath("$.data.routeId").isEqualTo(routeId);
 
-        // 网关状态包含新路由（保存即生效）
+        // 网关状态包含新路由（保存即生效），且 Predicates/Filters 结构化内容已填充
         webTestClient.get().uri("/api/gateway/status")
                 .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.data.health").isEqualTo("UP")
-                .jsonPath("$.data.effectiveRoutes[?(@.routeId=='%s')]".formatted(routeId)).exists();
+                .jsonPath("$.data.effectiveRoutes[?(@.routeId=='%s')]".formatted(routeId)).exists()
+                .jsonPath("$.data.effectiveRoutes[?(@.routeId=='%s')].predicates[0].name".formatted(routeId)).isEqualTo("Path")
+                .jsonPath("$.data.effectiveRoutes[?(@.routeId=='%s')].filters[0].name".formatted(routeId)).isEqualTo("AddRequestHeader")
+                .jsonPath("$.data.effectiveRoutes[?(@.routeId=='httpbin-get')].predicates[0].name").isEqualTo("Path");
 
         // 停用后不再生效，但配置仍在
         webTestClient.post().uri("/api/routes/{routeId}/enabled", routeId)

@@ -1,14 +1,14 @@
 package com.gatewaydashboard.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gatewaydashboard.auth.User;
+import com.gatewaydashboard.auth.entity.User;
 import com.gatewaydashboard.auth.UserAuthStateCache;
-import com.gatewaydashboard.auth.UserMapper;
-import com.gatewaydashboard.route.ConfigRevisionMapper;
+import com.gatewaydashboard.auth.mapper.UserMapper;
+import com.gatewaydashboard.route.mapper.ConfigRevisionMapper;
 import com.gatewaydashboard.route.RouteChangedEvent;
-import com.gatewaydashboard.route.RouteConfig;
-import com.gatewaydashboard.route.RouteConfigMapper;
-import com.gatewaydashboard.route.RouteDto.Step;
+import com.gatewaydashboard.route.entity.RouteConfig;
+import com.gatewaydashboard.route.mapper.RouteConfigMapper;
+import com.gatewaydashboard.route.dto.RouteDto.Step;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,5 +1,7 @@
 package com.gatewaydashboard.route;
 
+import com.gatewaydashboard.route.entity.RouteConfig;
+import com.gatewaydashboard.route.mapper.RouteConfigMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

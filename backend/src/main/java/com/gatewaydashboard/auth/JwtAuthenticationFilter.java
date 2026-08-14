@@ -1,5 +1,7 @@
 package com.gatewaydashboard.auth;
 
+import com.gatewaydashboard.auth.service.JwtService;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;

@@ -1,10 +1,12 @@
 package com.gatewaydashboard.route;
 
+import com.gatewaydashboard.route.entity.RouteConfig;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gatewaydashboard.route.RouteDto.RouteRequest;
-import com.gatewaydashboard.route.RouteDto.RouteResponse;
-import com.gatewaydashboard.route.RouteDto.Step;
+import com.gatewaydashboard.route.dto.RouteDto.RouteRequest;
+import com.gatewaydashboard.route.dto.RouteDto.RouteResponse;
+import com.gatewaydashboard.route.dto.RouteDto.Step;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;

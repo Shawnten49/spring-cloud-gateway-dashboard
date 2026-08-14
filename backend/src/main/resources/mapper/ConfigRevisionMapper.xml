@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!-- config_revision 全部 SQL（人工维护） -->
-<mapper namespace="com.gatewaydashboard.route.ConfigRevisionMapper">
+<mapper namespace="com.gatewaydashboard.route.mapper.ConfigRevisionMapper">
 
-    <select id="selectById" resultType="com.gatewaydashboard.route.ConfigRevision">
+    <select id="selectById" resultType="com.gatewaydashboard.route.entity.ConfigRevision">
         SELECT id, revision
         FROM config_revision
         WHERE id = #{id}

@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!-- sys_user 全部 SQL（人工维护） -->
-<mapper namespace="com.gatewaydashboard.auth.UserMapper">
+<mapper namespace="com.gatewaydashboard.auth.mapper.UserMapper">
 
     <sql id="BaseColumns">
         id, username, password_hash, role, enabled, token_version, created_at, updated_at
     </sql>
 
-    <select id="selectById" resultType="com.gatewaydashboard.auth.User">
+    <select id="selectById" resultType="com.gatewaydashboard.auth.entity.User">
         SELECT <include refid="BaseColumns"/>
         FROM sys_user
         WHERE id = #{id}
     </select>
 
-    <insert id="insert" parameterType="com.gatewaydashboard.auth.User"
+    <insert id="insert" parameterType="com.gatewaydashboard.auth.entity.User"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO sys_user (username, password_hash, role, enabled, token_version, created_at, updated_at)
         VALUES (#{username}, #{passwordHash}, #{role}, #{enabled}, #{tokenVersion}, #{createdAt}, #{updatedAt})
     </insert>
 
     <!-- 改密/吊销：只更新密码哈希、token 版本与更新时间 -->
-    <update id="updateById" parameterType="com.gatewaydashboard.auth.User">
+    <update id="updateById" parameterType="com.gatewaydashboard.auth.entity.User">
         UPDATE sys_user
         SET password_hash = #{passwordHash},
             token_version = #{tokenVersion},
@@ -28,7 +28,7 @@
         WHERE id = #{id}
     </update>
 
-    <select id="selectByUsername" resultType="com.gatewaydashboard.auth.User">
+    <select id="selectByUsername" resultType="com.gatewaydashboard.auth.entity.User">
         SELECT <include refid="BaseColumns"/>
         FROM sys_user
         WHERE username = #{username}
@@ -38,7 +38,7 @@
         SELECT COUNT(1) FROM sys_user WHERE username = #{username}
     </select>
 
-    <select id="selectAll" resultType="com.gatewaydashboard.auth.User">
+    <select id="selectAll" resultType="com.gatewaydashboard.auth.entity.User">
         SELECT <include refid="BaseColumns"/>
         FROM sys_user
     </select>

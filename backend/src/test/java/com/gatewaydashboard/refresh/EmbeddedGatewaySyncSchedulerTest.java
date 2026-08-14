@@ -1,8 +1,8 @@
 package com.gatewaydashboard.refresh;
 
-import com.gatewaydashboard.route.ConfigRevision;
-import com.gatewaydashboard.route.ConfigRevisionMapper;
-import com.gatewaydashboard.route.RouteRefreshService;
+import com.gatewaydashboard.route.entity.ConfigRevision;
+import com.gatewaydashboard.route.mapper.ConfigRevisionMapper;
+import com.gatewaydashboard.route.service.RouteRefreshService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

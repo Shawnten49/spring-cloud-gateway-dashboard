@@ -1,8 +1,10 @@
 package com.gatewaydashboard.refresh;
 
-import com.gatewaydashboard.route.ConfigRevision;
-import com.gatewaydashboard.route.ConfigRevisionMapper;
-import com.gatewaydashboard.route.RouteRefreshService;
+import com.gatewaydashboard.route.service.RouteService;
+
+import com.gatewaydashboard.route.entity.ConfigRevision;
+import com.gatewaydashboard.route.mapper.ConfigRevisionMapper;
+import com.gatewaydashboard.route.service.RouteRefreshService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;

@@ -1,5 +1,9 @@
 package com.gatewaydashboard.auth;
 
+import com.gatewaydashboard.auth.entity.User;
+import com.gatewaydashboard.auth.mapper.UserMapper;
+import com.gatewaydashboard.auth.service.AuthService;
+
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

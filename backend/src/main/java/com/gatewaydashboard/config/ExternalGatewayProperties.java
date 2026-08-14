@@ -1,5 +1,8 @@
 package com.gatewaydashboard.config;
 
+import com.gatewaydashboard.GatewayDashboardApplication;
+import com.gatewaydashboard.route.DbRouteDefinitionLocator;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;

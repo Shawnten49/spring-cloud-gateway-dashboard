@@ -1,7 +1,9 @@
 package com.gatewaydashboard.refresh;
 
+import com.gatewaydashboard.refresh.service.ExternalGatewayRefreshService;
+
 import com.gatewaydashboard.route.RouteChangedEvent;
-import com.gatewaydashboard.route.RouteRefreshService;
+import com.gatewaydashboard.route.service.RouteRefreshService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

@@ -1,5 +1,8 @@
 package com.gatewaydashboard.route;
 
+import com.gatewaydashboard.route.service.RouteService;
+
+
 /**
  * 路由配置已变更领域事件：RouteService 在任何真源写操作提交后发布。
  *

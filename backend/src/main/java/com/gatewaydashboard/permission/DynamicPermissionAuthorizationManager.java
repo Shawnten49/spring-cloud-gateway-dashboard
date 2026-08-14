@@ -1,6 +1,8 @@
 package com.gatewaydashboard.permission;
 
-import com.gatewaydashboard.permission.PermissionRuleService.CachedRule;
+import com.gatewaydashboard.permission.service.PermissionRuleService;
+
+import com.gatewaydashboard.permission.service.PermissionRuleService.CachedRule;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.ReactiveAuthorizationManager;

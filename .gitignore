@@ -24,4 +24,4 @@ backend/data/
 logs/
 
 # 本地启动手册（仅本地使用，不提交）
-startup.cmd
+startup.sh

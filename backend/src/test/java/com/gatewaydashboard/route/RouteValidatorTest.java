@@ -29,7 +29,7 @@ class RouteValidatorTest {
                 List.of(new Step("AddRequestHeader", Map.of("name", "X-Demo", "value", "1"))),
                 Map.of("owner", "demo"));
 
-        ValidationResponse response = validator.validate(request, null);
+        ValidationResponse response = validator.validate(request);
         assertTrue(response.valid(), response.errors().toString());
     }
 
@@ -40,7 +40,7 @@ class RouteValidatorTest {
                 List.of(new Step("NoSuchPredicate", Map.of())),
                 List.of(), Map.of());
 
-        ValidationResponse response = validator.validate(request, null);
+        ValidationResponse response = validator.validate(request);
         assertFalse(response.valid());
         assertTrue(response.errors().stream().anyMatch(e -> e.contains("未知的工厂名")));
     }
@@ -51,7 +51,7 @@ class RouteValidatorTest {
                 "demo-route", "http://httpbin.org", 0, true,
                 List.of(), List.of(), Map.of());
 
-        assertFalse(validator.validate(request, null).valid());
+        assertFalse(validator.validate(request).valid());
     }
 
     @Test
@@ -60,7 +60,7 @@ class RouteValidatorTest {
                 "demo-route", "http://httpbin.org", 0, false,
                 List.of(), List.of(), Map.of());
 
-        assertTrue(validator.validate(request, null).valid());
+        assertTrue(validator.validate(request).valid());
     }
 
     @Test
@@ -70,7 +70,7 @@ class RouteValidatorTest {
                 List.of(new Step("Path", Map.of("patterns", "/demo/**"))),
                 List.of(), Map.of());
 
-        assertFalse(validator.validate(request, null).valid());
+        assertFalse(validator.validate(request).valid());
     }
 
     @Test
@@ -80,6 +80,6 @@ class RouteValidatorTest {
                 List.of(new Step("Path", Map.of("patterns", Map.of("nested", "x")))),
                 List.of(), Map.of());
 
-        assertFalse(validator.validate(request, null).valid());
+        assertFalse(validator.validate(request).valid());
     }
 }

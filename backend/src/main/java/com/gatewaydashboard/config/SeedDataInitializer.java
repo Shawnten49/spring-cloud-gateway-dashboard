@@ -5,18 +5,21 @@ import com.gatewaydashboard.auth.User;
 import com.gatewaydashboard.auth.UserAuthStateCache;
 import com.gatewaydashboard.auth.UserRepository;
 import com.gatewaydashboard.route.ConfigRevisionRepository;
+import com.gatewaydashboard.route.RouteChangedEvent;
 import com.gatewaydashboard.route.RouteConfig;
 import com.gatewaydashboard.route.RouteConfigRepository;
 import com.gatewaydashboard.route.RouteDto.Step;
-import com.gatewaydashboard.route.RouteRefreshService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Map;
@@ -35,10 +38,9 @@ public class SeedDataInitializer implements ApplicationRunner {
     private final UserAuthStateCache userAuthStateCache;
     private final RouteConfigRepository routeRepository;
     private final ConfigRevisionRepository configRevisionRepository;
-    private final EmbeddedGatewaySyncScheduler embeddedGatewaySyncScheduler;
+    private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
-    private final RouteRefreshService routeRefreshService;
 
     @Value("${gateway-dashboard.seed.admin-password:}")
     private String adminPassword;
@@ -69,11 +71,20 @@ public class SeedDataInitializer implements ApplicationRunner {
             seeded = true;
         }
         if (seeded) {
-            // 种子路由也走真源写路径：递增全局修订号（F13），外部网关/内嵌网关轮询才能感知
+            // 种子路由也走真源写路径：同一事务内递增全局修订号（F13）
             configRevisionRepository.bumpRevision();
-            routeRefreshService.refresh();
-            // 种子刷新后同步修订号，避免内嵌网关轮询兜底把同一次变更重复刷新
-            embeddedGatewaySyncScheduler.markRefreshed();
+            // 事务提交后再发布路由变更事件（刷新/推送由 refresh 包监听编排），
+            // 保证生效路由重建读到已提交的种子数据
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        eventPublisher.publishEvent(new RouteChangedEvent());
+                    }
+                });
+            } else {
+                eventPublisher.publishEvent(new RouteChangedEvent());
+            }
         }
     }
 

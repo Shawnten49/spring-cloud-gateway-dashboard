@@ -23,8 +23,10 @@ async function load() {
 function actionType(action: string): 'success' | 'warning' | 'danger' | 'info' {
   switch (action) {
     case 'CREATE':
+    case 'ENABLE':
       return 'success'
     case 'UPDATE':
+    case 'DISABLE':
       return 'warning'
     case 'DELETE':
       return 'danger'

@@ -1,5 +1,6 @@
-package com.gatewaydashboard.config;
+package com.gatewaydashboard.refresh;
 
+import com.gatewaydashboard.config.ExternalGatewayProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -32,15 +33,15 @@ public class ExternalGatewayRefreshService {
     }
 
     public void refreshAll() {
-        for (ExternalGatewayProperties.Gateway gateway : properties.getExternalGateways()) {
-            String baseUrl = gateway.getBaseUrl();
+        for (ExternalGatewayProperties.Gateway gateway : properties.externalGateways()) {
+            String baseUrl = gateway.baseUrl();
             if (baseUrl == null || baseUrl.isBlank()) {
                 continue;
             }
             String url = baseUrl.endsWith("/") ? baseUrl + "internal/routes/refresh" : baseUrl + "/internal/routes/refresh";
             webClient.post()
                     .uri(url)
-                    .header("X-Internal-Token", gateway.getToken())
+                    .header("X-Internal-Token", gateway.token())
                     .retrieve()
                     .bodyToMono(String.class)
                     .timeout(PUSH_TIMEOUT)

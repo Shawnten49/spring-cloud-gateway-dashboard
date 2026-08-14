@@ -45,7 +45,7 @@ public class RouteValidator {
         return new TreeSet<>(filterFactories.keySet());
     }
 
-    public ValidationResponse validate(RouteRequest request, String existingRouteId) {
+    public ValidationResponse validate(RouteRequest request) {
         List<String> errors = new ArrayList<>();
 
         if (request.routeId() == null || request.routeId().isBlank()) {

@@ -17,7 +17,7 @@ public class AuditService {
 
     private final AuditLogRepository repository;
 
-    public void record(String actor, String action, String routeId, String beforeJson, String afterJson, String ip) {
+    public void record(String actor, AuditAction action, String routeId, String beforeJson, String afterJson, String ip) {
         AuditLog log = new AuditLog();
         log.setActorUsername(actor);
         log.setAction(action);

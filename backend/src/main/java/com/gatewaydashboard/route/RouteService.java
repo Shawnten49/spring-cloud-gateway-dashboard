@@ -1,13 +1,13 @@
 package com.gatewaydashboard.route;
 
+import com.gatewaydashboard.audit.AuditAction;
 import com.gatewaydashboard.audit.AuditService;
 import com.gatewaydashboard.common.BusinessException;
-import com.gatewaydashboard.config.EmbeddedGatewaySyncScheduler;
-import com.gatewaydashboard.config.ExternalGatewayRefreshService;
 import com.gatewaydashboard.route.RouteDto.RouteRequest;
 import com.gatewaydashboard.route.RouteDto.RouteResponse;
 import com.gatewaydashboard.route.RouteDto.ValidationResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -24,11 +24,9 @@ public class RouteService {
     private final RouteConfigRepository repository;
     private final RouteValidator validator;
     private final RouteAssembler assembler;
-    private final RouteRefreshService refreshService;
     private final AuditService auditService;
-    private final ExternalGatewayRefreshService externalGatewayRefreshService;
     private final ConfigRevisionRepository configRevisionRepository;
-    private final EmbeddedGatewaySyncScheduler embeddedGatewaySyncScheduler;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public List<RouteResponse> list(String keyword) {
@@ -57,7 +55,7 @@ public class RouteService {
             // 唯一约束冲突应返回 409 而非 500。
             throw BusinessException.conflict("路由 ID 已存在: " + request.routeId());
         }
-        auditService.record(actor, "CREATE", entity.getRouteId(), null, assembler.toJson(entity), ip);
+        auditService.record(actor, AuditAction.CREATE, entity.getRouteId(), null, assembler.toJson(entity), ip);
         bumpRevision();
         scheduleRefreshAfterCommit();
         return assembler.toResponse(entity);
@@ -78,7 +76,7 @@ public class RouteService {
         } catch (ObjectOptimisticLockingFailureException e) {
             throw BusinessException.conflict("该路由已被其他操作修改，请刷新后重试");
         }
-        auditService.record(actor, "UPDATE", saved.getRouteId(), before, assembler.toJson(saved), ip);
+        auditService.record(actor, AuditAction.UPDATE, saved.getRouteId(), before, assembler.toJson(saved), ip);
         bumpRevision();
         scheduleRefreshAfterCommit();
         return assembler.toResponse(saved);
@@ -88,7 +86,7 @@ public class RouteService {
     public void delete(String routeId, String actor, String ip) {
         RouteConfig existing = find(routeId);
         repository.delete(existing);
-        auditService.record(actor, "DELETE", existing.getRouteId(), assembler.toJson(existing), null, ip);
+        auditService.record(actor, AuditAction.DELETE, existing.getRouteId(), assembler.toJson(existing), null, ip);
         bumpRevision();
         scheduleRefreshAfterCommit();
     }
@@ -105,7 +103,7 @@ public class RouteService {
         String before = assembler.toJson(existing);
         existing.setEnabled(enabled);
         RouteConfig saved = repository.saveAndFlush(existing);
-        auditService.record(actor, enabled ? "ENABLE" : "DISABLE", saved.getRouteId(), before, assembler.toJson(saved), ip);
+        auditService.record(actor, enabled ? AuditAction.ENABLE : AuditAction.DISABLE, saved.getRouteId(), before, assembler.toJson(saved), ip);
         bumpRevision();
         scheduleRefreshAfterCommit();
         return assembler.toResponse(saved);
@@ -120,32 +118,28 @@ public class RouteService {
     }
 
     /**
-     * 事务提交后再刷新：本地网关重新从库加载（保证读到已提交数据），
-     * 同时向配置的外部网关推送刷新通知，并把当前修订号标记为已刷新（避免轮询兜底重复刷新）。
+     * 事务提交后发布路由变更事件（route 包不依赖刷新/推送实现，由 refresh 包监听编排）：
+     * 本地生效路由刷新 → 内嵌网关轮询标记 → 外部网关推送。
      */
     private void scheduleRefreshAfterCommit() {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    refreshService.refresh();
-                    embeddedGatewaySyncScheduler.markRefreshed();
-                    externalGatewayRefreshService.refreshAll();
+                    eventPublisher.publishEvent(new RouteChangedEvent());
                 }
             });
         } else {
-            refreshService.refresh();
-            embeddedGatewaySyncScheduler.markRefreshed();
-            externalGatewayRefreshService.refreshAll();
+            eventPublisher.publishEvent(new RouteChangedEvent());
         }
     }
 
     public ValidationResponse validateOnly(RouteRequest request) {
-        return validator.validate(request, request.routeId());
+        return validator.validate(request);
     }
 
     private void ensureValid(RouteRequest request) {
-        ValidationResponse validation = validator.validate(request, request.routeId());
+        ValidationResponse validation = validator.validate(request);
         if (!validation.valid()) {
             throw BusinessException.badRequest(String.join("; ", validation.errors()));
         }

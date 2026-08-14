@@ -156,7 +156,7 @@ public class RouteAssembler {
         return coerced;
     }
 
-    private List<Step> toSteps(List<? extends Object> definitions) {
+    private List<Step> toSteps(List<?> definitions) {
         List<Step> steps = new ArrayList<>();
         if (definitions != null) {
             for (Object definition : definitions) {

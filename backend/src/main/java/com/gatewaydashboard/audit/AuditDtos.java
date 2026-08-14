@@ -7,7 +7,7 @@ public final class AuditDtos {
     private AuditDtos() {
     }
 
-    public record AuditLogResponse(Long id, String actorUsername, String action, String routeId,
+    public record AuditLogResponse(Long id, String actorUsername, AuditAction action, String routeId,
                                    String beforeJson, String afterJson, String ip, Instant createdAt) {
 
         public static AuditLogResponse from(AuditLog log) {

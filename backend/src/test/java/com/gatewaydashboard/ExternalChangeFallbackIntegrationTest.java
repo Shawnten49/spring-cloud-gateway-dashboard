@@ -1,6 +1,6 @@
 package com.gatewaydashboard;
 
-import com.gatewaydashboard.config.EmbeddedGatewaySyncScheduler;
+import com.gatewaydashboard.refresh.EmbeddedGatewaySyncScheduler;
 import com.gatewaydashboard.route.ConfigRevisionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

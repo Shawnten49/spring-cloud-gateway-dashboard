@@ -1,4 +1,4 @@
-package com.gatewaydashboard.config;
+package com.gatewaydashboard.refresh;
 
 import com.gatewaydashboard.route.ConfigRevision;
 import com.gatewaydashboard.route.ConfigRevisionRepository;

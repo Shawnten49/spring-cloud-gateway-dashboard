@@ -2,11 +2,11 @@ package com.gatewaydashboard.gateway;
 
 import com.gatewaydashboard.config.ExternalGatewayProperties;
 import com.gatewaydashboard.config.ExternalGatewayProperties.Gateway;
-import com.gatewaydashboard.config.ExternalGatewayRefreshService;
-import com.gatewaydashboard.config.ExternalGatewayRefreshService.PushRecord;
 import com.gatewaydashboard.gateway.GatewayStatusDtos.ExternalGatewayStatus;
 import com.gatewaydashboard.gateway.GatewayStatusDtos.ExternalRoutesResponse;
 import com.gatewaydashboard.gateway.GatewayStatusDtos.PushInfo;
+import com.gatewaydashboard.refresh.ExternalGatewayRefreshService;
+import com.gatewaydashboard.refresh.ExternalGatewayRefreshService.PushRecord;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -39,28 +39,37 @@ public class ExternalGatewayStatusService {
     }
 
     public Mono<List<ExternalGatewayStatus>> fetchAll() {
-        List<Gateway> gateways = properties.getExternalGateways().stream()
-                .filter(g -> g.getBaseUrl() != null && !g.getBaseUrl().isBlank())
+        List<Gateway> gateways = properties.externalGateways().stream()
+                .filter(g -> g.baseUrl() != null && !g.baseUrl().isBlank())
                 .toList();
         if (gateways.isEmpty()) {
             return Mono.just(List.of());
         }
         List<Mono<ExternalGatewayStatus>> monos = gateways.stream().map(this::fetchOne).toList();
+        return zipAll(monos);
+    }
+
+    /**
+     * 并发聚合并按输入顺序返回（Mono.zip 的 Object[] 回调不可避免一次受检强转，
+     * 收敛到唯一一处并标注，调用侧保持类型安全）。
+     */
+    @SuppressWarnings("unchecked")
+    private static <T> Mono<List<T>> zipAll(List<Mono<T>> monos) {
         return Mono.zip(monos, array -> {
-            List<ExternalGatewayStatus> result = new ArrayList<>(array.length);
+            List<T> result = new ArrayList<>(array.length);
             for (Object item : array) {
-                result.add((ExternalGatewayStatus) item);
+                result.add((T) item);
             }
             return result;
         });
     }
 
     private Mono<ExternalGatewayStatus> fetchOne(Gateway gateway) {
-        String baseUrl = gateway.getBaseUrl();
+        String baseUrl = gateway.baseUrl();
         String url = baseUrl.endsWith("/") ? baseUrl + "internal/routes" : baseUrl + "/internal/routes";
         return webClient.get()
                 .uri(url)
-                .header("X-Internal-Token", gateway.getToken())
+                .header("X-Internal-Token", gateway.token())
                 .retrieve()
                 .bodyToMono(ExternalRoutesResponse.class)
                 .timeout(REQUEST_TIMEOUT)

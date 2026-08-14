@@ -2,6 +2,8 @@ package com.gatewaydashboard.audit;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,7 +33,8 @@ public class AuditLog {
     private String actorUsername;
 
     @Column(nullable = false, length = 16)
-    private String action;
+    @Enumerated(EnumType.STRING)
+    private AuditAction action;
 
     @Column(name = "route_id", length = 128)
     private String routeId;

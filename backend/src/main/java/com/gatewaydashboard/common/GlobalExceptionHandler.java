@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -32,17 +33,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({MethodArgumentNotValidException.class, WebExchangeBindException.class})
     public ResponseEntity<ApiResponse<Void>> handleValidation(Exception e) {
+        BindingResult binding = e instanceof MethodArgumentNotValidException mve ? mve.getBindingResult()
+                : e instanceof WebExchangeBindException webe ? webe.getBindingResult()
+                : null;
         String message = "参数校验失败";
-        if (e instanceof MethodArgumentNotValidException mve) {
-            FieldError fieldError = mve.getBindingResult().getFieldErrors().stream().findFirst().orElse(null);
-            if (fieldError != null) {
-                message = fieldError.getField() + " " + fieldError.getDefaultMessage();
-            }
-        } else if (e instanceof WebExchangeBindException webe) {
-            FieldError fieldError = webe.getBindingResult().getFieldErrors().stream().findFirst().orElse(null);
-            if (fieldError != null) {
-                message = fieldError.getField() + " " + fieldError.getDefaultMessage();
-            }
+        FieldError fieldError = binding == null ? null
+                : binding.getFieldErrors().stream().findFirst().orElse(null);
+        if (fieldError != null) {
+            message = fieldError.getField() + " " + fieldError.getDefaultMessage();
         }
         return ResponseEntity.badRequest().body(ApiResponse.fail(400, message));
     }

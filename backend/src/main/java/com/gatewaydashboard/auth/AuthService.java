@@ -17,6 +17,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final UserAuthStateCache userAuthStateCache;
 
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
@@ -28,6 +29,8 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw BusinessException.unauthorized("用户名或密码错误");
         }
+        // 登录成功即同步缓存（覆盖缓存加载后才创建的账号，如种子账号），保证新 token 可被过滤器校验
+        userAuthStateCache.update(user.getUsername(), user.getTokenVersion(), user.isEnabled());
         return new LoginResponse(jwtService.generate(user), UserSummary.from(user));
     }
 
@@ -45,7 +48,10 @@ public class AuthService {
         if (!passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
             throw BusinessException.badRequest("原密码错误");
         }
+        // S-04 吊销：改密即吊销该用户此前签发的全部 token（JWT ver 不再匹配）
+        user.setTokenVersion(user.getTokenVersion() + 1);
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
+        userAuthStateCache.update(user.getUsername(), user.getTokenVersion(), user.isEnabled());
     }
 }

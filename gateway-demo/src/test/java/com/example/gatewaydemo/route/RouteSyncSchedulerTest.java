@@ -11,8 +11,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * 轮询兜底同步回归测试（评审 F12）：校验和变化触发刷新、主动推送后不再重复刷新、
- * 校验和再次变化仍会兜底触发。
+ * 轮询兜底同步回归测试（评审 F12/F13）：revision 水印变化触发刷新、
+ * 主动推送后不再重复刷新、revision 再次变化仍会兜底触发。
  */
 class RouteSyncSchedulerTest {
 
@@ -29,15 +29,15 @@ class RouteSyncSchedulerTest {
         when(jdbcTemplate.queryForObject(
                 org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.<Class<String>>any()))
-                .thenReturn("2:100");
+                .thenReturn("5");
         scheduler.init();
     }
 
     @Test
-    void checksumChangeTriggersRefreshExactlyOnce() {
+    void revisionChangeTriggersRefreshExactlyOnce() {
         when(jdbcTemplate.queryForObject(org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.<Class<String>>any()))
-                .thenReturn("3:150");
+                .thenReturn("6");
 
         scheduler.poll();
         scheduler.poll();
@@ -65,7 +65,7 @@ class RouteSyncSchedulerTest {
         // 新的变更到来，轮询兜底必须触发
         when(jdbcTemplate.queryForObject(org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.<Class<String>>any()))
-                .thenReturn("4:200");
+                .thenReturn("7");
         scheduler.poll();
 
         verify(refreshPublisher, times(1)).refresh();

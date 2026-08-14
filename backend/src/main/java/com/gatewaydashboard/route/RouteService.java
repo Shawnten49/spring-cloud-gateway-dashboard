@@ -2,6 +2,7 @@ package com.gatewaydashboard.route;
 
 import com.gatewaydashboard.audit.AuditService;
 import com.gatewaydashboard.common.BusinessException;
+import com.gatewaydashboard.config.EmbeddedGatewaySyncScheduler;
 import com.gatewaydashboard.config.ExternalGatewayRefreshService;
 import com.gatewaydashboard.route.RouteDto.RouteRequest;
 import com.gatewaydashboard.route.RouteDto.RouteResponse;
@@ -26,6 +27,8 @@ public class RouteService {
     private final RouteRefreshService refreshService;
     private final AuditService auditService;
     private final ExternalGatewayRefreshService externalGatewayRefreshService;
+    private final ConfigRevisionRepository configRevisionRepository;
+    private final EmbeddedGatewaySyncScheduler embeddedGatewaySyncScheduler;
 
     @Transactional(readOnly = true)
     public List<RouteResponse> list(String keyword) {
@@ -55,6 +58,7 @@ public class RouteService {
             throw BusinessException.conflict("路由 ID 已存在: " + request.routeId());
         }
         auditService.record(actor, "CREATE", entity.getRouteId(), null, assembler.toJson(entity), ip);
+        bumpRevision();
         scheduleRefreshAfterCommit();
         return assembler.toResponse(entity);
     }
@@ -75,6 +79,7 @@ public class RouteService {
             throw BusinessException.conflict("该路由已被其他操作修改，请刷新后重试");
         }
         auditService.record(actor, "UPDATE", saved.getRouteId(), before, assembler.toJson(saved), ip);
+        bumpRevision();
         scheduleRefreshAfterCommit();
         return assembler.toResponse(saved);
     }
@@ -84,6 +89,7 @@ public class RouteService {
         RouteConfig existing = find(routeId);
         repository.delete(existing);
         auditService.record(actor, "DELETE", existing.getRouteId(), assembler.toJson(existing), null, ip);
+        bumpRevision();
         scheduleRefreshAfterCommit();
     }
 
@@ -100,13 +106,22 @@ public class RouteService {
         existing.setEnabled(enabled);
         RouteConfig saved = repository.saveAndFlush(existing);
         auditService.record(actor, enabled ? "ENABLE" : "DISABLE", saved.getRouteId(), before, assembler.toJson(saved), ip);
+        bumpRevision();
         scheduleRefreshAfterCommit();
         return assembler.toResponse(saved);
     }
 
     /**
+     * 全局修订号 +1（F13）：与路由写入同一事务，原子自增。
+     * 内嵌网关轮询兜底（F5）与外部网关轮询（gateway-demo）据此感知任意写变更。
+     */
+    private void bumpRevision() {
+        configRevisionRepository.bumpRevision();
+    }
+
+    /**
      * 事务提交后再刷新：本地网关重新从库加载（保证读到已提交数据），
-     * 同时向配置的外部网关推送刷新通知。
+     * 同时向配置的外部网关推送刷新通知，并把当前修订号标记为已刷新（避免轮询兜底重复刷新）。
      */
     private void scheduleRefreshAfterCommit() {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -114,11 +129,13 @@ public class RouteService {
                 @Override
                 public void afterCommit() {
                     refreshService.refresh();
+                    embeddedGatewaySyncScheduler.markRefreshed();
                     externalGatewayRefreshService.refreshAll();
                 }
             });
         } else {
             refreshService.refresh();
+            embeddedGatewaySyncScheduler.markRefreshed();
             externalGatewayRefreshService.refreshAll();
         }
     }

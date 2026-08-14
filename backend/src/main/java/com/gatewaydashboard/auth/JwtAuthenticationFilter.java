@@ -20,6 +20,7 @@ import reactor.core.publisher.Mono;
 public class JwtAuthenticationFilter implements WebFilter {
 
     private final JwtService jwtService;
+    private final UserAuthStateCache userAuthStateCache;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -29,6 +30,12 @@ public class JwtAuthenticationFilter implements WebFilter {
                 Claims claims = jwtService.parse(header.substring(7));
                 String username = claims.getSubject();
                 String role = claims.get("role", String.class);
+                long tokenVersion = claims.get("ver") instanceof Number n ? n.longValue() : 0L;
+                // S-04 吊销校验：改密/停用后 token_version +1，旧 token 的 ver 不再匹配 → 视为未认证
+                if (!userAuthStateCache.isTokenValid(username, tokenVersion)) {
+                    log.debug("JWT 已吊销或用户状态变化（{}）: {}", username, exchange.getRequest().getPath());
+                    return chain.filter(exchange);
+                }
                 var authentication = new UsernamePasswordAuthenticationToken(
                         username, null, AuthorityUtils.createAuthorityList("ROLE_" + role));
                 return chain.filter(exchange)

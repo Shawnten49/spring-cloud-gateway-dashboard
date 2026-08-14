@@ -2,7 +2,9 @@ package com.gatewaydashboard.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gatewaydashboard.auth.User;
+import com.gatewaydashboard.auth.UserAuthStateCache;
 import com.gatewaydashboard.auth.UserRepository;
+import com.gatewaydashboard.route.ConfigRevisionRepository;
 import com.gatewaydashboard.route.RouteConfig;
 import com.gatewaydashboard.route.RouteConfigRepository;
 import com.gatewaydashboard.route.RouteDto.Step;
@@ -30,7 +32,10 @@ import java.util.Map;
 public class SeedDataInitializer implements ApplicationRunner {
 
     private final UserRepository userRepository;
+    private final UserAuthStateCache userAuthStateCache;
     private final RouteConfigRepository routeRepository;
+    private final ConfigRevisionRepository configRevisionRepository;
+    private final EmbeddedGatewaySyncScheduler embeddedGatewaySyncScheduler;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final RouteRefreshService routeRefreshService;
@@ -46,11 +51,13 @@ public class SeedDataInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         boolean seeded = false;
         if (!userRepository.existsByUsername("admin")) {
-            userRepository.save(buildUser("admin", requireSeedPassword("admin", adminPassword), "ADMIN"));
+            User admin = userRepository.save(buildUser("admin", requireSeedPassword("admin", adminPassword), "ADMIN"));
+            userAuthStateCache.update(admin.getUsername(), admin.getTokenVersion(), admin.isEnabled());
             seeded = true;
         }
         if (!userRepository.existsByUsername("viewer")) {
-            userRepository.save(buildUser("viewer", requireSeedPassword("viewer", viewerPassword), "VIEWER"));
+            User viewer = userRepository.save(buildUser("viewer", requireSeedPassword("viewer", viewerPassword), "VIEWER"));
+            userAuthStateCache.update(viewer.getUsername(), viewer.getTokenVersion(), viewer.isEnabled());
             seeded = true;
         }
         if (!routeRepository.existsByRouteId("httpbin-get")) {
@@ -62,7 +69,11 @@ public class SeedDataInitializer implements ApplicationRunner {
             seeded = true;
         }
         if (seeded) {
+            // 种子路由也走真源写路径：递增全局修订号（F13），外部网关/内嵌网关轮询才能感知
+            configRevisionRepository.bumpRevision();
             routeRefreshService.refresh();
+            // 种子刷新后同步修订号，避免内嵌网关轮询兜底把同一次变更重复刷新
+            embeddedGatewaySyncScheduler.markRefreshed();
         }
     }
 

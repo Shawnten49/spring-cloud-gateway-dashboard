@@ -37,6 +37,13 @@ public class User {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    /**
+     * 用户级 token 版本号（S-04 吊销机制）：改密/停用时 +1，
+     * JWT 携带 ver claim，过滤器比对不一致即视为已吊销。
+     */
+    @Column(name = "token_version", nullable = false)
+    private long tokenVersion;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
